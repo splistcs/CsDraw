@@ -1,0 +1,3 @@
+Icones das granadas usados SOMENTE no quadro tatico (bandeja, adesivos no mapa, filtros e painel do adesivo).
+O demo viewer continua usando ../grenades/.
+Nomes: he.png flash.png smoke.png molotov.png incendiary.png decoy.png (PNG com fundo transparente, ja recortados).

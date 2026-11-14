@@ -1,0 +1,71 @@
+{
+  "name": "csdraw-desktop",
+  "version": "2.0.0",
+  "private": true,
+  "description": "CSDraw - quadro tático, playbooks, mídia e demo viewer para Counter-Strike 2",
+  "author": "CSDraw",
+  "main": "electron/main.js",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n vite,electron -c cyan,yellow \"vite\" \"wait-on http://localhost:5173 && cross-env CSDRAW_DEV=1 electron .\"",
+    "build": "vite build",
+    "start": "vite build && electron .",
+    "test": "node --test \"test/*.test.mjs\"",
+    "dist": "vite build && electron-builder",
+    "inspect-demo": "node scripts/inspect-demo.mjs",
+    "smoke": "electron --no-sandbox scripts/electron-smoke.mjs",
+    "release": "vite build && electron-builder --publish always"
+  },
+  "dependencies": {
+    "@laihoe/demoparser2": "^0.42.3",
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.3",
+    "concurrently": "^9.0.0",
+    "cross-env": "^7.0.3",
+    "electron": "^45.2.3",
+    "electron-builder": "^26.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
+    "vite": "^5.4.10",
+    "wait-on": "^8.0.0"
+  },
+  "build": {
+    "appId": "com.csdraw.app",
+    "productName": "CSDraw",
+    "asar": false,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**",
+      "dist/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "splistcs",
+        "repo": "CsDraw"
+      }
+    ]
+  }
+}

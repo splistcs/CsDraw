@@ -1,0 +1,49 @@
+name: Release
+
+# Publicar uma versão: aumente "version" no package.json, faça commit e envie uma tag igual (ex.: v2.1.0).
+#   git tag v2.1.0 && git push origin v2.1.0
+# O workflow gera os instaladores (Windows, macOS, Linux) e os anexa a um rascunho de release no GitHub.
+# Revise o rascunho e clique em "Publish release": é nesse momento que os apps instalados passam a enxergar a versão.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Conferir se a tag bate com a versão do package.json
+        shell: bash
+        run: |
+          VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json','utf8')).version)")
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "A tag $GITHUB_REF_NAME não bate com a versão $VERSION do package.json"; exit 1
+          fi
+
+      - run: npm ci
+
+      - name: Testes
+        if: matrix.os == 'ubuntu-latest'
+        run: npm test
+
+      - name: Gerar e publicar instaladores
+        run: npm run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS com assinatura (necessária para o auto-update no Mac): defina estes segredos no repositório.
+          # CSC_LINK: ${{ secrets.CSC_LINK }}
+          # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}

@@ -1,0 +1,7 @@
+Coloque aqui os icones PNG das granadas (fundo transparente, de preferencia quadrados, ~128x128 ou maiores):
+
+  he.png  flash.png  smoke.png  molotov.png  incendiary.png  decoy.png
+
+Usados no quadro tatico e no demo viewer (inventario dos jogadores, granadas no chao, granada em voo e killfeed).
+Enquanto um arquivo nao existir, o app usa um emoji (quadro) ou um icone vetorial colorido (demo viewer).
+Os icones das armas e da C4 ficam em ../weapons/.

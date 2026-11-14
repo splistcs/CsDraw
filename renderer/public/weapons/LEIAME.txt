@@ -1,0 +1,16 @@
+Icones das armas e da C4 usados no demo viewer (painel dos jogadores, killfeed e radar).
+PNG com fundo transparente, de preferencia brancos/claros (o painel e escuro), ~128 px de largura ou mais.
+O nome do arquivo e o nome de classe da arma, sem "weapon_":
+
+  Rifles:     ak47  m4a1 (M4A4)  m4a1_silencer (M4A1-S)  awp  aug  famas  galilar  sg556  ssg08  g3sg1  scar20
+  SMGs:       mac10  mp9  mp7  mp5sd  ump45  p90  bizon
+  Pesadas:    nova  xm1014  mag7  sawedoff  m249  negev
+  Pistolas:   glock  hkp2000 (P2000)  usp_silencer (USP-S)  p250  elite  fiveseven  tec9  cz75a  deagle  revolver
+  Outros:     knife (qualquer faca)  taser  c4  defuser (kit de defuse, mostrado no chao)
+  Killfeed:   headshot (marca de headshot)  flashbang_assist (assistencia de flash)
+
+As granadas ficam em ../grenades/ (he, flash, smoke, molotov, incendiary, decoy) e valem para o quadro tatico
+e para o demo viewer (inventario dos jogadores, chao e granada em voo).
+
+Arquivo que nao existe: o app usa o texto da arma (ou o icone vetorial, na C4 e nas granadas). Nao precisa
+ter todos; pode ir adicionando aos poucos. Depois de trocar os arquivos, rode "npm start" (ou reinicie o "npm run dev").
