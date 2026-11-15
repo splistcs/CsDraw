@@ -23,10 +23,8 @@ import { TeamPanels } from './TeamPanels.jsx';
 import { TimelineBar } from './TimelineBar.jsx';
 
 const NO_IMAGES = [];
-// v2: o valor antigo compensava uma camada preta que cobria o radar; quem salvou um brilho alto volta ao padrao.
 const BRIGHTNESS_KEY = 'csdraw.demo.brightness.v2';
 
-/** Brilho salvo (por visualizador); sem armazenamento ou com valor invalido, o padrao. */
 function loadBrightness() {
   try {
     const value = Number(window.localStorage.getItem(BRIGHTNESS_KEY));
@@ -37,10 +35,6 @@ function loadBrightness() {
 }
 const NO_FILTERS = { hiddenTypes: new Set(), hideStrokes: false };
 
-/**
- * Replay 2D em tela cheia: radar com pan/zoom, camada de anotacoes (sem adesivos, nao salva),
- * e HUD no estilo Skybox (times, barra de rounds, linha do tempo, atalhos).
- */
 export function DemoStage({ demo, entry, onBack, isActive }) {
   const { t } = useI18n();
   const { askText } = useFeedback();
@@ -69,8 +63,6 @@ export function DemoStage({ demo, entry, onBack, isActive }) {
   const round = demo.rounds[roundIndex];
   const mapEntry = useMemo(() => MapCatalog.tryFind(demo.map.slug) ?? { slug: demo.map.slug, name: demo.map.name || demo.map.slug, lowerLevel: false }, [demo.map]);
   const known = MapCalibration.find(demo.map.slug);
-  // Radar de cima (so para alinhar): com ele e as posicoes da demo, mapas sem calibracao oficial (ou com calibracao que
-  // erra o chao) sao alinhados pela imagem.
   const [baseImage, setBaseImage] = useState(null);
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +75,6 @@ export function DemoStage({ demo, entry, onBack, isActive }) {
     const mask = WalkMask.from(baseImage);
     const fitted = mask ? CalibrationFit.fit(mask, points) : null;
     if (!fitted) return { calibration: null, lowerZ: null, points };
-    // A tabela vale enquanto as posicoes caem no chao; se o Valve mexeu no mapa e ela erra, a imagem decide.
     const trusted = known && CalibrationFit.score(mask, points, known) >= 0.6;
     return { calibration: trusted ? null : fitted, lowerZ: null, points };
   }, [demo, baseImage, known]);
@@ -98,9 +89,8 @@ export function DemoStage({ demo, entry, onBack, isActive }) {
   includeFreezeRef.current = includeFreeze;
   const changeBrightness = (value) => {
     setBrightness(value);
-    try { window.localStorage.setItem(BRIGHTNESS_KEY, String(value)); } catch { /* sem armazenamento: vale so nesta sessao */ }
+    try { window.localStorage.setItem(BRIGHTNESS_KEY, String(value)); } catch { }
   };
-  // O mapa e enquadrado na area livre: fora do painel dos times (direita) e da barra de rounds/linha do tempo (baixo).
   useEffect(() => { viewport.setInsets({ right: window.innerWidth < 900 ? 230 : 310, bottom: 112 }); }, [viewport]);
   useEffect(() => () => playback.dispose(), [playback]);
   useEffect(() => { if (!isActive) playback.pause(); }, [isActive, playback]);
@@ -121,12 +111,11 @@ export function DemoStage({ demo, entry, onBack, isActive }) {
   useEffect(() => {
     playback.onEnded = () => {
       if (roundIndex >= demo.rounds.length - 1) return;
-      resumeRef.current = true; // continua tocando no proximo round
+      resumeRef.current = true;
       setRoundIndex(roundIndex + 1);
     };
   }, [demo, roundIndex, playback]);
 
-  // Com os andares divididos mostra tudo; sem dividir, enquadra so o andar em foco (tecla L alterna).
   useEffect(() => {
     if (layout.levels.length > 1 && !splitLevels) viewport.fit(MapLayout.levelRect(layout, focusedLevel));
     else viewport.fit();

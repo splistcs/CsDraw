@@ -30,7 +30,6 @@ test('analise sintetica: rounds, placar com troca de lados, kills, granadas e bo
   assert.equal(result.rounds[1].bomb[0].x, -700);
   assert.ok(result.bounds.maxX > result.bounds.minX);
   assert.ok(stages.length >= 4);
-  // novos dados: freezetime, z, armadura/dinheiro/arma, andares
   assert.equal(result.rounds[0].freezeSeconds, 10);
   assert.equal(result.rounds[0].frames[0].p[0].length, 15);
   assert.ok(result.weapons.includes('m4a1') && result.weapons.includes('ak47'));
@@ -69,7 +68,7 @@ test('lados e slugs', () => {
 
 test('demo sem rounds gera erro claro', () => {
   const engine = { ...fakeEngine(), parseEvents: () => [] };
-  assert.throws(() => new DemoAnalyzer(engine).analyze('x.dem'), /Nenhum round/);
+  assert.throws(() => new DemoAnalyzer(engine).analyze('x.dem'), /No rounds/);
 });
 
 test('inventario de granadas e pitch entram em cada frame', () => {
@@ -129,7 +128,7 @@ test('percursos: entidade reaproveitada vira duas granadas, armas seguradas e li
   const row = (entity, tick, x) => ({ grenade_entity_id: entity, grenade_type: 'CHEGrenadeProjectile', steamid: '1', tick, x, y: 0, z: 0 });
   const tracks = GrenadeTracks.fromRows([
     ...[100, 101, 102, 103].map((tick, i) => row(9, tick, i * 10)),
-    ...[500, 501, 502, 503].map((tick, i) => row(9, tick, 1000 + i * 10)), // mesma entidade, bem depois e em outro lugar
+    ...[500, 501, 502, 503].map((tick, i) => row(9, tick, 1000 + i * 10)),
     { grenade_entity_id: 3, grenade_type: 'CHEGrenade', steamid: '1', tick: 100, x: 0, y: 0, z: 0 },
     { grenade_entity_id: 4, grenade_type: 'CHEGrenadeProjectile', steamid: '1', tick: 'x', x: 0, y: 0, z: 0 },
     row(5, 100, 0)
@@ -151,12 +150,10 @@ const GEAR = ['Knife', 'Glock-18'];
 const deathDrops = (engine) => new DemoAnalyzer(engine).analyze('x.dem').rounds[0].drops.filter((d) => d.death);
 
 test('granadas no chao: quem morre solta UMA granada, a mais cara do inventario; some quando alguem pega', () => {
-  // o jogador 3 morre no tick 1000 com 2 flashes e uma smoke: so a smoke cai (a mais cara); a arma na mao nao importa
   const drops = deathDrops(withInventory(fakeEngine(), '3', [...GEAR, 'Flashbang', 'Flashbang', 'Smoke Grenade']));
   assert.deepEqual(drops.map((d) => [d.type, d.death]), [['smoke', true]]);
   assert.deepEqual([drops[0].x, drops[0].y, drops[0].z, drops[0].t], [-1200, -1000, 120, 15.63]);
   assert.equal(drops[0].until, 20.31, 'o jogador 1 pegou a smoke (tick 1300)');
-  // a flash da compra (tick 300, longe e antes) nao fecha nada
   assert.equal(deathDrops(withInventory(fakeEngine(), '3', [...GEAR, 'Flashbang', 'Flashbang']))[0].until, null, 'ninguem pegou a flash');
 });
 
@@ -213,7 +210,6 @@ test('arma principal do inventario vai em cada frame (a ativa continua no indice
   assert.equal(result.features.economy, true);
 });
 
-/** Parser falso em que o inventario de um jogador perde itens em certos ticks (o resto da partida e a de sempre). */
 function engineWithInventory(change) {
   const engine = createFakeEngine({ perSide: 2 });
   const parseTicks = engine.parseTicks;
@@ -238,10 +234,8 @@ test('largar de proposito: queda no inventario sem arremesso vira item no chao (
 });
 
 test('largar de proposito: arremesso e plantio explicam a queda e nao viram drop', () => {
-  // player 2 joga a flash no tick 1150..1200 (ver createFakeEngine): o inventario cai no momento do arremesso
   const thrown = engineWithInventory((id, tick, inv) => (id === '2' && tick >= 1152 ? without(inv, 'Flashbang') : inv));
   assert.equal(new DemoAnalyzer(thrown).analyze('x.dem').rounds[0].drops.filter((d) => d.death === false).length, 0, 'arremessada');
-  // C4 some do inventario logo antes do bomb_planted (tick 3000, round 2)
   const planted = engineWithInventory((id, tick, inv) => (id === '1' && tick < 2990 && tick >= 1920 ? [...inv, 'C4 Explosive'] : inv));
   assert.equal(new DemoAnalyzer(planted).analyze('x.dem').rounds[1].drops.filter((d) => d.type === 'c4').length, 0, 'plantada');
 });
@@ -256,17 +250,14 @@ test('EntityNotFound: eventos e ticks problematicos nao derrubam a analise', () 
   const entity = () => Object.assign(new Error('EntityNotFound'), { code: 'GenericFailure' });
   const base = createFakeEngine({ perSide: 2 });
 
-  // 1) leitura de eventos em bloco com propriedades de jogador falha; evento a evento sem elas funciona
   const noPlayerProps = { ...base, parseEvents: (path, names, playerProps, other) => { if (names.length > 1 || playerProps.length) throw entity(); return base.parseEvents(path, names, playerProps, other); } };
   assert.equal(new DemoAnalyzer(noPlayerProps).analyze('x.dem').rounds.length, 3);
 
-  // 2) um unico tick quebra o parser (propriedades iguais): so aquele tick e descartado
   let badTick = null;
   const brokenTick = { ...base, parseTicks: (path, props, ticks) => { badTick ??= ticks[Math.floor(ticks.length / 2)]; if (ticks.includes(badTick)) throw entity(); return base.parseTicks(path, props, ticks); } };
   const analyzed = new DemoAnalyzer(brokenTick).analyze('x.dem');
   assert.equal(analyzed.rounds.length, 3);
 
-  // 3) erro real (nada funciona) continua aparecendo com a mensagem do parser
   const dead = { ...base, parseEvents: () => { throw entity(); } };
   assert.throws(() => new DemoAnalyzer(dead).analyze('x.dem'), /EntityNotFound/);
 });
@@ -315,12 +306,12 @@ test('killfeed completo: assistencia (flash), cego, sem mira, fumaca, parede e f
 
 test('erros do leitor de demos viram orientacao (atualizar o CSDraw); as mensagens nossas continuam e ganham a dica', () => {
   const broken = { parseHeader: () => { throw new Error('unsupported demo format'); } };
-  assert.throws(() => new DemoAnalyzer(broken, () => {}, '0.42.3').analyze('x.dem'), /demoparser2 0\.42\.3.*atualizado.*unsupported demo format/s);
-  assert.throws(() => new DemoAnalyzer(broken).analyze('x.dem'), /\(demoparser2\).*atualizado/s, 'sem versao conhecida');
+  assert.throws(() => new DemoAnalyzer(broken, () => {}, '0.42.3').analyze('x.dem'), /demoparser2 0\.42\.3.*outdated.*unsupported demo format/s);
+  assert.throws(() => new DemoAnalyzer(broken).analyze('x.dem'), /\(demoparser2\).*outdated/s, 'sem versao conhecida');
   const noRounds = { ...createFakeEngine({ perSide: 2 }), parseEvents: () => [] };
   const message = (() => { try { new DemoAnalyzer(noRounds, () => {}, '0.42.3').analyze('x.dem'); } catch (error) { return error.message; } return ''; })();
-  assert.match(message, /^Nenhum round encontrado\./);
-  assert.match(message, /desatualizado.*0\.42\.3/s);
+  assert.match(message, /^No rounds found\./);
+  assert.match(message, /outdated.*0\.42\.3/s);
   assert.equal(new DemoAnalyzer(createFakeEngine({ perSide: 2 }), () => {}, '0.42.3').analyze('x.dem').parserVersion, '0.42.3', 'a analise registra o leitor que a fez');
 });
 

@@ -17,9 +17,8 @@ const round1 = (value) => Math.round(value * 10) / 10;
 const round2 = (value) => Math.round(value * 100) / 100;
 const byTick = (a, b) => a.tick - b.tick;
 const MAX_FREEZE_SECONDS = 60;
-const POST_ROUND_SECONDS = 5; // sem round_officially_ended (ultimo round), o round segue ~5 s depois da mensagem de vitoria
+const POST_ROUND_SECONDS = 5;
 
-/** Transforma eventos e amostras de posicao em rounds prontos para o viewer (funcoes puras). */
 export class RoundBuilder {
   static normalizeSide(value) {
     const text = String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -28,10 +27,6 @@ export class RoundBuilder {
     return null;
   }
 
-  /**
-   * Cada round_end define um round. O inicio (freezetime) e o ultimo round_start antes do
-   * round_freeze_end; o jogo "ao vivo" comeca no round_freeze_end.
-   */
   static buildBoundaries(events, tickRate) {
     const ends = (events.round_end ?? []).filter((e) => Number.isFinite(e.tick)).sort(byTick);
     const freezes = (events.round_freeze_end ?? []).map((e) => e.tick).filter(Number.isFinite).sort((a, b) => a - b);
@@ -45,8 +40,6 @@ export class RoundBuilder {
       let startTick = candidates.length ? candidates[candidates.length - 1] : (freezeEndTick ?? previousEnd);
       const liveStart = freezeEndTick ?? startTick;
       startTick = Math.max(startTick, liveStart - MAX_FREEZE_SECONDS * tickRate);
-      // A mensagem de vitoria sai no round_end, mas o round ainda dura ~5 s (comemoracao, bomba explodindo) ate o
-      // round_officially_ended, que cai no mesmo tick do round_start seguinte: um tick antes ainda e o round que acabou.
       const nextEndTick = ends[position + 1]?.tick ?? Infinity;
       const official = officials.find((tick) => tick > end.tick && tick < nextEndTick);
       const closeTick = official !== undefined ? official - 1 : end.tick + POST_ROUND_SECONDS * tickRate;
@@ -70,16 +63,15 @@ export class RoundBuilder {
     return [...ticks].sort((a, b) => a - b);
   }
 
-  /** Frame: [indice, x, y, yaw, vida, lado, z, armadura, dinheiro, indiceDaArma, pitch, granadas+C4 (GrenadeInventory.pack), indiceDaArmaPrincipal, capacete 0/1, municao -1 = desconhecida]. */
   static assemble({ rounds, events, rows, tickRate, tracks = [], groundItems = null }) {
     const players = [];
     const indexById = new Map();
     const weapons = [];
     const weaponIndex = new Map();
     const rowsByTick = new Map();
-    const timeline = new Map(); // jogador -> todas as leituras ({ tick, entry }), quadros e sondagens, por tick
+    const timeline = new Map();
     const clanByPlayer = new Map();
-    const flashSamples = new Map(); // jogador -> [{ tick, flash, alive }] (flash_duration lido junto das posicoes)
+    const flashSamples = new Map();
     let hasInventory = false;
     let hasEconomy = false;
     const weaponId = (name) => {
@@ -100,7 +92,6 @@ export class RoundBuilder {
       const clan = RoundBuilder.#teamName(row.team_clan_name);
       if (clan && !clanByPlayer.has(indexById.get(id))) clanByPlayer.set(indexById.get(id), clan);
       const weapon = WeaponNames.canonical(row.active_weapon_name);
-      // Arma "do inventario": a principal (ou a pistola), que nao some do painel quando o jogador saca faca ou granada.
       const main = WeaponNames.main(row.inventory) || weapon;
       if (row.balance !== undefined) hasEconomy = true;
       const entry = [
@@ -127,7 +118,7 @@ export class RoundBuilder {
 
     const bounds = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
     const output = [];
-    let teamA = null; // jogadores que comecaram como CT
+    let teamA = null;
     let scoreA = 0;
     let scoreB = 0;
 
@@ -178,23 +169,18 @@ export class RoundBuilder {
       }
       grenades.sort((a, b) => a.tick - b.tick);
       const thrown = grenades.map(({ tick, entityId, steamId, grenade }) => {
-        // O fogo da molotov usa a entidade do incendio, nao a do projetil: so tipo, jogador e posicao ligam os dois.
         const track = GrenadeTracks.match(tracks, { tick, type: grenade.type, x: grenade.x, y: grenade.y, thrower: steamId === null ? null : String(steamId), entityId: grenade.type === 'fire' ? null : entityId }, tickRate);
         if (!track) return { ...grenade, thrownT: grenade.t };
         const { points, bounces } = GrenadeTracks.path(track, tick, tickRate);
         const point = (p) => [secondsAt(p.tick), Math.round(p.x) || 0, Math.round(p.y) || 0, Math.round(p.z) || 0];
-        // O evento do fogo nao diz quem jogou; o projetil diz.
         const thrower = grenade.thrower ?? (track.thrower === null ? null : playerIndex(track.thrower));
         return { ...grenade, thrower, thrownT: secondsAt(track.startTick), path: points.map(point), bounces: bounces.map(point) };
       });
 
-      // Saidas de granada da mao (weapon_fire): prova de que o item sumiu do inventario por arremesso, mesmo sem explosao registrada.
       const fires = (events.weapon_fire ?? []).filter(inRound)
         .map((e) => ({ player: playerIndex(e.user_steamid), type: GrenadeInventory.classify(e.weapon), t: seconds(e) }))
         .filter((fire) => fire.player !== null && fire.type && fire.type !== 'c4' && fire.type !== 'defuser');
 
-      // Cegueira: pelo evento player_blind quando a demo o traz; senao (servidores de campeonato nao o gravam) pela
-      // propriedade flash_duration de cada jogador.
       const hasBlindEvents = (events.player_blind?.length ?? 0) > 0;
       const blinds = hasBlindEvents
         ? (events.player_blind ?? []).filter(inRound).map((e) => ({
@@ -232,8 +218,6 @@ export class RoundBuilder {
         hasPickupEvents: (events.item_pickup?.length ?? 0) > 0,
         hasFireEvents: (events.weapon_fire?.length ?? 0) > 0
       });
-      // Itens no chao: o que o parser entrega (granadas, C4, kit) vem das entidades da propria demo, tick a tick; so o que
-      // ele nao cobre continua sendo deduzido dos eventos e do inventario.
       const covered = WeaponDrops.covered(groundItems);
       const drops = [
         ...(groundItems ? WeaponDrops.build({ index: groundItems, startTick: round.startTick, endTick: round.endTick, tickRate, at: secondsAt, deaths: deathEvents, fires, sides, playerIndex }) : []),
@@ -242,7 +226,6 @@ export class RoundBuilder {
 
       output.push({
         number: output.length + 1,
-        // O ultimo round pode acabar antes do fim estimado (a demo termina logo apos a vitoria): vale o ultimo quadro lido.
         durationSeconds: round2(Math.min((round.endTick - round.startTick) / tickRate, frames[frames.length - 1].t)),
         freezeSeconds: round2((round.freezeEndTick - round.startTick) / tickRate),
         winner: round.winner,
@@ -266,14 +249,13 @@ export class RoundBuilder {
       economy: hasEconomy,
       trajectories: output.some((r) => r.grenades.some((g) => g.path)),
       blinds: output.some((r) => r.blinds.length > 0),
-      blindEvents: (events.player_blind ?? []).length, // quantos player_blind o parser entregou (diagnostico: 0 = a demo/parser nao traz o evento)
+      blindEvents: (events.player_blind ?? []).length,
       blindSource: (events.player_blind?.length ?? 0) > 0 ? 'event' : (flashSamples.size > 0 ? 'ticks' : null),
       teamNames: Boolean(teams.a || teams.b)
     };
     return { players, weapons, teams, features, rounds: output, bounds: Number.isFinite(bounds.minX) ? bounds : null, tickRate };
   }
 
-  /** Municao no carregador; -1 quando o parser nao entrega (demo sem a propriedade). */
   static #ammo(value) {
     const ammo = Number(value);
     return value === undefined || value === null || !Number.isFinite(ammo) || ammo < 0 ? -1 : Math.round(ammo);
@@ -285,7 +267,6 @@ export class RoundBuilder {
     return Number.isFinite(px) && Number.isFinite(py) ? { x: round1(px), y: round1(py), z: round1(Number(z) || 0) } : {};
   }
 
-  /** Tudo que o killfeed do jogo mostra alem de quem matou quem: assistencia (e se foi de flash), cego, sem mira, atraves da fumaca e parede. So entra o que ocorreu. */
   static #killDetails(e, playerIndex) {
     const details = {};
     const assister = playerIndex(e.assister_steamid);
@@ -304,7 +285,6 @@ export class RoundBuilder {
     return name || null;
   }
 
-  /** Nome de cada time pelo mais comum entre os jogadores (o time A e quem comecou como CT). */
   static #teamNames(clanByPlayer, teamA) {
     const mostCommon = (names) => {
       const counts = new Map();

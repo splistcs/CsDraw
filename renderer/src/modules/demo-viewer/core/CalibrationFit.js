@@ -3,15 +3,9 @@ import { WalkMask } from './WalkMask.js';
 const COARSE = { scales: [-0.12, 0.12, 0.02], shift: [-48, 48, 6] };
 const FINE = { scaleStep: 0.005, shift: 6 };
 
-/**
- * Alinha o radar de um mapa sem calibracao oficial: as posicoes que os jogadores visitaram na demo precisam cair
- * sobre o chao da imagem. Parte do enquadramento (caixa das posicoes x caixa do chao) e refina escala e deslocamento
- * pelo que mais posicoes acerta no chao. O resultado e aproximado (`approximate: true`).
- */
 export class CalibrationFit {
   static MAX_POINTS = 1500;
 
-  /** Posicoes `{ x, y, z }` dos jogadores vivos da demo, espalhadas por todos os rounds (no maximo MAX_POINTS). */
   static samples(demo) {
     const all = [];
     for (const round of demo.rounds ?? []) {
@@ -23,20 +17,18 @@ export class CalibrationFit {
     return all.filter((_, index) => index % step === 0);
   }
 
-  /** Fracao das posicoes que caem no chao (com folga de 2 celulas) segundo uma calibracao `{ x, y, scale }`. */
   static score(mask, points, calibration) {
     if (!mask || !points.length) return 0;
     return CalibrationFit.#hits(CalibrationFit.#dilated(mask), points, mask, (X, Y) => [(X - calibration.x) / calibration.scale, (calibration.y - Y) / calibration.scale]) / points.length;
   }
 
-  /** Melhor calibracao aproximada, ou null (sem mascara, sem posicoes ou posicoes sem extensao). */
   static fit(mask, points) {
     if (!mask || points.length < 20) return null;
     const box = CalibrationFit.#floorBox(mask);
     const bounds = CalibrationFit.#bounds(points);
     if (!box || bounds.width < 1 || bounds.height < 1) return null;
     const dilated = CalibrationFit.#dilated(mask);
-    const base = Math.max(bounds.width / box.width, bounds.height / box.height); // unidades por pixel do radar
+    const base = Math.max(bounds.width / box.width, bounds.height / box.height);
     const centerX = (bounds.minX + bounds.maxX) / 2;
     const centerY = (bounds.minY + bounds.maxY) / 2;
     const imageX = (box.x0 + box.x1) / 2;
@@ -64,10 +56,6 @@ export class CalibrationFit {
     return { x: centerX - px * scale, y: centerY + py * scale, scale, approximate: true, score: CalibrationFit.score(mask, points, { x: centerX - px * scale, y: centerY + py * scale, scale }) };
   }
 
-  /**
-   * Altura que separa o andar de baixo do de cima quando o mapa tem dois andares mas nao ha valor conhecido: o corte
-   * que melhor separa as alturas das posicoes em dois grupos (Otsu). Null se nao houver dois grupos claros.
-   */
   static lowerLevelZ(points) {
     const values = points.map((point) => point.z).filter(Number.isFinite).sort((a, b) => a - b);
     if (values.length < 50) return null;
@@ -95,7 +83,6 @@ export class CalibrationFit {
     return { ...b, width: b.maxX - b.minX, height: b.maxY - b.minY };
   }
 
-  /** Caixa (em pixels do radar) que contem todo o chao. */
   static #floorBox(mask) {
     let x0 = Infinity; let y0 = Infinity; let x1 = -Infinity; let y1 = -Infinity;
     for (let cy = 0; cy < mask.size; cy += 1) {
@@ -107,7 +94,6 @@ export class CalibrationFit {
     return Number.isFinite(x0) ? { x0: x0 * mask.cell, x1: x1 * mask.cell, y0: y0 * mask.cell, y1: y1 * mask.cell, width: (x1 - x0) * mask.cell, height: (y1 - y0) * mask.cell } : null;
   }
 
-  /** Chao engrossado em 2 celulas: as posicoes ficam encostadas em paredes, caixas e bordas do desenho. */
   static #dilated(mask) {
     const { size, cells } = mask;
     const out = new Uint8Array(size * size);

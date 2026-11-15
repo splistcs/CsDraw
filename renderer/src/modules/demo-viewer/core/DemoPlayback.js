@@ -1,4 +1,3 @@
-/** Relogio de reproducao do round (play/pause, velocidade, intervalo, busca). Independente de React. */
 export class DemoPlayback {
   static SPEEDS = [0.5, 1, 2, 4, 8];
 
@@ -27,7 +26,6 @@ export class DemoPlayback {
     return () => this.#listeners.delete(listener);
   }
 
-  /** Carrega um round: `duration` total em segundos e inicio da parte reproduzida (`min`). */
   load(duration, { min = 0 } = {}) {
     this.pause();
     this.#max = Math.max(0, duration);
@@ -36,7 +34,6 @@ export class DemoPlayback {
     this.#emit();
   }
 
-  /** Ajusta o inicio da parte reproduzida (ex.: incluir/ocultar o freezetime). */
   setMin(min) {
     this.#min = Math.min(Math.max(0, min), this.#max);
     this.#time = Math.max(this.#time, this.#min);
@@ -73,7 +70,6 @@ export class DemoPlayback {
     this.#emit();
   }
 
-  /** Muda a velocidade em passos na lista de velocidades (+1 / -1). */
   stepSpeed(direction) {
     const index = DemoPlayback.SPEEDS.indexOf(this.#speed);
     const next = Math.min(DemoPlayback.SPEEDS.length - 1, Math.max(0, index + direction));

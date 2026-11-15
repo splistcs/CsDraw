@@ -1,6 +1,5 @@
 import { BrowserWindow, shell } from 'electron';
 
-/** Estado e acoes da atualizacao automatica; o estado novo e empurrado para todas as janelas. */
 export class UpdateIpc {
   #updates;
   constructor(updates) { this.#updates = updates; }
@@ -12,7 +11,6 @@ export class UpdateIpc {
       this.#updates.install();
       return this.#updates.state;
     });
-    // A URL vem da configuracao do app (package.json), nunca do renderer.
     registry.handle('update:openReleases', async () => {
       const url = this.#updates.state.releasesUrl;
       if (url) await shell.openExternal(url);

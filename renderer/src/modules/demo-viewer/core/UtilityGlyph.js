@@ -1,6 +1,5 @@
 import { UtilityStyle } from './UtilityStyle.js';
 
-/** Icones vetoriais das utilidades (grade 24x24): os mesmos desenhos no painel (SVG) e no radar (Path2D). */
 export class UtilityGlyph {
   static PATHS = {
     smoke: 'M6.5 19a4.5 4.5 0 0 1-.9-8.9 6 6 0 0 1 11.5-1.1A4.8 4.8 0 0 1 17.5 19z',
@@ -12,7 +11,6 @@ export class UtilityGlyph {
     defuser: 'M4 9h13v3h5v3h-5v3H4zM6 6h4v3H6z'
   };
 
-  /** Desenha o icone centrado em (x, y). Sem Path2D (testes em Node) nao desenha nada. */
   static draw(ctx, type, x, y, size, color = UtilityStyle.color(type)) {
     const d = UtilityGlyph.PATHS[type];
     if (!d || typeof Path2D === 'undefined') return;

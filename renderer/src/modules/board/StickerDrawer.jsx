@@ -6,10 +6,6 @@ import { GrenadeIcon } from '../../shared/drawing/GrenadeIcon.jsx';
 import { ImageLightbox } from '../../shared/ui/ImageLightbox.jsx';
 import { SideDrawer } from '../../shared/ui/SideDrawer.jsx';
 
-/**
- * Menu lateral (direita) do adesivo clicado: anexa imagens (botao, arrastar ou colar) e permite
- * escrever uma legenda em cada uma. As imagens ficam no cofre criptografado.
- */
 export function StickerDrawer({ board, stickerId, onClose }) {
   const { t, errorMessage } = useI18n();
   const [, refresh] = useReducer((n) => n + 1, 0);

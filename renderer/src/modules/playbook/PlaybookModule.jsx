@@ -15,7 +15,7 @@ export default function PlaybookModule({ isActive }) {
   const [activeId, setActiveId] = useState(null);
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
-  const [reloadKey, setReloadKey] = useState(0); // remonta o editor quando o texto muda por fora (outra aba, importacao)
+  const [reloadKey, setReloadKey] = useState(0);
   const [saveState, setSaveState] = useState('saved');
   const editorRef = useRef(null);
   const contentRef = useRef('');

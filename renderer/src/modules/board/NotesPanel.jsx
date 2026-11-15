@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { MarkdownView } from '../../shared/markdown/MarkdownView.jsx';
 
-/** Anotacoes: preview de Markdown; o botao Editar alterna para o editor. */
 export function NotesPanel({ notes, onChange, onDownload }) {
   const { t } = useI18n();
   const [isEditing, setIsEditing] = useState(false);

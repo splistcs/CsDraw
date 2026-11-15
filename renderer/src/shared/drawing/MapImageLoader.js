@@ -1,4 +1,3 @@
-/** Carrega (com cache) radares de public/maps/<nome>.png; null quando o arquivo nao existe. */
 export class MapImageLoader {
   static #cache = new Map();
 
@@ -17,7 +16,6 @@ export class MapImageLoader {
     return MapImageLoader.#cache.get(name);
   }
 
-  /** Um radar por andar do layout (mesma ordem de layout.levels). */
   static loadLevels(layout) {
     return Promise.all(layout.levels.map((level) => MapImageLoader.load(level.imageName)));
   }

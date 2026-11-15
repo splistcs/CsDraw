@@ -4,7 +4,6 @@ import { Modal } from './Modal.jsx';
 
 const FeedbackContext = createContext(null);
 
-/** Dialogos de texto/confirmacao (prompt() nao existe no Electron) e avisos rapidos (toast). */
 export function FeedbackProvider({ children }) {
   const { t } = useI18n();
   const [dialog, setDialog] = useState(null);

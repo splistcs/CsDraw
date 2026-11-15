@@ -7,7 +7,6 @@ import { IconImage } from './IconImage.jsx';
 const VISIBLE_SECONDS = 8;
 const MAX_ENTRIES = 6;
 
-/** Marcas do abate (grade 24x24, brancas): as que o jogo mostra ao lado da arma. */
 const MARKS = {
   headshot: 'M12 2a6 6 0 0 0-6 6c0 2.3 1.2 4.1 3 5.2V16h6v-2.8c1.8-1.1 3-2.9 3-5.2a6 6 0 0 0-6-6zM9.3 7.2a1.4 1.4 0 1 1 0 2.8 1.4 1.4 0 0 1 0-2.8zm5.4 0a1.4 1.4 0 1 1 0 2.8 1.4 1.4 0 0 1 0-2.8zM9 18h6v2H9z',
   blind: 'M12 5C6.5 5 2.7 8.6 1 12c1.7 3.4 5.5 7 11 7s9.3-3.6 11-7c-1.7-3.4-5.5-7-11-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-2.3a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4zM3 3.500 4.500 2 22 19.5 20.5 21z',
@@ -24,11 +23,6 @@ function Mark({ name, title }) {
   );
 }
 
-/**
- * Abates recentes (ate 8 s antes do instante atual) no canto superior esquerdo, como o killfeed do jogo:
- * quem matou (+ assistente, com o icone de flash quando foi assistencia de flash), cego, arma (icone), sem mira,
- * atraves da fumaca, parede, headshot e quem morreu. Morte sem atacante (queda, bomba, mapa) mostra so a arma.
- */
 export function KillFeed({ players, round, playback }) {
   const { t } = useI18n();
   const { time } = usePlaybackSnapshot(playback, 8);

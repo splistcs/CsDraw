@@ -1,9 +1,3 @@
-/**
- * Texto inline dos blocos do editor: Markdown <-> HTML do contentEditable.
- * Suporta **negrito**, *italico*, ~~riscado~~, `codigo` e [texto](url). O resto e texto literal
- * (escapado com barra invertida ao salvar, para voltar igual ao reabrir).
- */
-
 const ZWSP = '​';
 const ESCAPABLE = '\\*_~`[]()#>-+.!|<';
 const SAFE_URL = /^(https?:|mailto:)/i;
@@ -16,27 +10,20 @@ export const InlineMarkdown = {
 
   isSafeUrl: (url) => SAFE_URL.test(String(url ?? '').trim()),
 
-  /** Markdown inline -> HTML (so gera b/i/s/code/a; todo texto e escapado). */
   toHtml(markdown) {
     return renderInline(String(markdown ?? ''));
   },
 
-  /** Texto puro (sem marcacao) do Markdown inline, para tamanhos e buscas. */
   toPlain(markdown) {
     return renderInline(String(markdown ?? ''))
       .replace(/<[^>]+>/g, '')
       .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
   },
 
-  /** No do contentEditable (ou fragmento) -> Markdown inline. */
   fromDom(node) {
     return serializeChildren(node).replace(/​/g, '');
   },
 
-  /**
-   * Impede que o texto de um paragrafo seja lido como outro bloco ao reabrir
-   * ("# x", "- x", "1. x", "> x", "---", "```", "| x", "![x]", "<url>" ...).
-   */
   protectLine(markdown) {
     let line = String(markdown ?? '');
     if (/^https?:\/\/\S+$/.test(line)) return `<${line}>`;
@@ -95,14 +82,13 @@ function renderInline(source) {
   return html;
 }
 
-/** Procura o fechamento `mark` (ignorando escapes e codigo) a partir de `from`. */
 function findClose(source, mark, from) {
   for (let i = from; i < source.length; i += 1) {
     if (source[i] === '\\') { i += 1; continue; }
     if (source[i] === '`') { const end = source.indexOf('`', i + 1); if (end > 0) i = end; continue; }
     if (source.startsWith(mark, i)) {
       if (mark === '*' && source[i + 1] === '*') { i += 1; continue; }
-      if (mark === '**' && source[i + 2] === '*') return i + 1; // `**a *b***`: o italico fecha antes
+      if (mark === '**' && source[i + 2] === '*') return i + 1;
       return i;
     }
   }
@@ -119,7 +105,7 @@ function readLink(source, start) {
   }
   if (close < 0 || source[close + 1] !== '(') return null;
   let urlEnd = -1;
-  for (let i = close + 2, open = 1; i < source.length; i += 1) { // parenteses balanceados: .../Wiki_(filme)
+  for (let i = close + 2, open = 1; i < source.length; i += 1) {
     if (source[i] === '(') open += 1;
     else if (source[i] === ')') { open -= 1; if (open === 0) { urlEnd = i; break; } }
   }
@@ -138,7 +124,6 @@ function escapeText(text) {
   return out;
 }
 
-/** Espacos nas pontas ficam fora da marca (`** a **` nao e negrito em Markdown). */
 function wrap(inner, mark) {
   if (!inner.trim()) return inner;
   const lead = inner.match(/^\s*/)[0];

@@ -15,7 +15,7 @@ export class VaultIpc {
       const result = await dialog.showSaveDialog(BrowserWindow.fromWebContents(event.sender), {
         title: typeof title === 'string' ? title.slice(0, 100) : undefined,
         defaultPath: `csdraw-backup.${VaultTransferService.FILE_EXTENSION}`,
-        filters: [{ name: 'CSDraw', extensions: [VaultTransferService.FILE_EXTENSION] }]
+        filters: [{ name: 'CsDraw', extensions: [VaultTransferService.FILE_EXTENSION] }]
       });
       if (result.canceled || !result.filePath) return { canceled: true };
       const counts = await this.#container.transfer.exportTo(result.filePath, passphrase);
@@ -26,7 +26,7 @@ export class VaultIpc {
       const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
         title: typeof title === 'string' ? title.slice(0, 100) : undefined,
         properties: ['openFile'],
-        filters: [{ name: 'CSDraw', extensions: [VaultTransferService.FILE_EXTENSION] }]
+        filters: [{ name: 'CsDraw', extensions: [VaultTransferService.FILE_EXTENSION] }]
       });
       if (result.canceled || !result.filePaths[0]) return { canceled: true };
       const counts = await this.#container.transfer.importFrom(result.filePaths[0], passphrase, mode);

@@ -1,4 +1,3 @@
-/** Agrupa a saida do parser por nome de evento, aceitando os formatos conhecidos. */
 export class EventNormalizer {
   static group(raw) {
     const grouped = {};

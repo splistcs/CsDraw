@@ -1,6 +1,5 @@
-/** Camera 2D (pan + zoom) compartilhada entre canvases. Unidades da tela em pixels CSS. */
 export class Viewport {
-  static MIN_FACTOR = 0.35; // relativo ao "ajustar tudo"
+  static MIN_FACTOR = 0.35;
   static MAX_FACTOR = 24;
   static MARGIN = 0.96;
 
@@ -11,7 +10,6 @@ export class Viewport {
   tx = 0;
   ty = 0;
   world = { x: 0, y: 0, w: 1024, h: 1024 };
-  /** Margens ocupadas por interface sobreposta (HUD): o mapa e enquadrado na area livre. */
   insets = { top: 0, right: 0, bottom: 0, left: 0 };
   #isFitted = true;
   #focus = null;
@@ -52,7 +50,6 @@ export class Viewport {
     this.fit();
   }
 
-  /** Enquadra um retangulo do mundo (padrao: o mundo todo). */
   fit(rect = this.world) {
     this.#focus = rect === this.world ? null : rect;
     this.#isFitted = true;
@@ -89,7 +86,6 @@ export class Viewport {
     return { x: x * this.scale + this.tx, y: y * this.scale + this.ty };
   }
 
-  /** Aplica a transformacao mundo -> pixels do canvas (considerando devicePixelRatio). */
   apply(ctx) {
     ctx.setTransform(this.dpr * this.scale, 0, 0, this.dpr * this.scale, this.dpr * this.tx, this.dpr * this.ty);
   }

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { MapCatalog } from '../../shared/constants/MapCatalog.js';
 
-/** Miniatura do mapa (public/mapicons); se o PNG nao existir, cai para o radar e, por fim, some. */
 function MapIcon({ slug }) {
   const [source, setSource] = useState(MapCatalog.iconUrl(slug));
   useEffect(() => setSource(MapCatalog.iconUrl(slug)), [slug]);
@@ -12,7 +11,6 @@ function MapIcon({ slug }) {
     : <span className="map-option-icon empty" />;
 }
 
-/** Menu suspenso de mapas com miniatura (renderizado no centro do cabecalho via HeaderPortal). */
 export function MapSelect({ value, onChange }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);

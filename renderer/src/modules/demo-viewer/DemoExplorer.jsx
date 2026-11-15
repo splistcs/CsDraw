@@ -68,7 +68,6 @@ function DemoRow({ entry, onOpen, onRename, onAddTag, onRemoveTag, onDelete }) {
   );
 }
 
-/** Biblioteca de demos (estilo explorer): filtros, ordenacao, tags, arrastar para importar. */
 export function DemoExplorer({ entries, progress, onFiles, onImportPaths, onOpen, onRename, onAddTag, onRemoveTag, onDelete, onCancel }) {
   const { t, locale } = useI18n();
   const [mapFilter, setMapFilter] = useState('all');

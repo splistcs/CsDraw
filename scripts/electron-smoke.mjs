@@ -1,7 +1,3 @@
-// Smoke test do app real: abre o Electron, exercita IPC, protocolo de midia, quadro (ferramentas, pan/zoom,
-// filtros, gaveta do adesivo), playbook, midia, biblioteca de demos, demo viewer (HUD, atalhos, dois andares),
-// exportar/importar e troca de idiomas; salva screenshots.
-// Uso (Linux): SMOKE_DATA=/tmp/dados SMOKE_SHOTS=/tmp/shots xvfb-run -a electron --no-sandbox scripts/electron-smoke.mjs
 import { app, dialog, protocol, session } from 'electron';
 import fsSync from 'node:fs';
 import fs from 'node:fs/promises';
@@ -33,7 +29,6 @@ protocol.registerSchemesAsPrivileged([MediaProtocol.privilegedScheme()]);
 const failures = [];
 const check = (name, ok, extra = '') => { log(`${ok ? 'PASS' : 'FAIL'}  ${name} ${extra}`); if (!ok) failures.push(name); };
 
-// Sem top-level await: no Electron ele bloquearia o evento 'ready' do app.
 async function main() {
   try {
     await app.whenReady();
@@ -62,7 +57,6 @@ async function main() {
     const tool = (index) => run(`document.querySelectorAll('.draw-toolbar > .tb-btn')[${index}].click()`);
     const tab = (index) => run(`document.querySelectorAll('.tab')[${index}].click()`);
 
-    // ---- base: pt-BR e dados de teste ----
     await run(`localStorage.setItem('csdraw-locale', 'pt-BR')`);
     const setup = await run(`(async () => {
       const api = window.csdraw; const out = {};
@@ -91,7 +85,6 @@ async function main() {
     await loaded();
     await sleep(700);
 
-    // ---- quadro: abrir desenho salvo, gaveta esquerda sobreposta ----
     await run(`document.querySelector('.drawer-handle').click()`);
     await sleep(500);
     check('gaveta esquerda abre sobre o conteudo (alca sempre visivel)', await run(`document.querySelector('.drawer-left').classList.contains('open') && document.querySelector('.drawer-handle').getBoundingClientRect().width > 0`));
@@ -107,14 +100,13 @@ async function main() {
     const savedDrawing = async () => run(`window.csdraw.drawings.get('${setup.drawingId}')`);
     const saveNow = async () => { await run(`document.querySelector('.save-actions .btn-primary').click()`); await sleep(500); };
 
-    // ---- ferramentas de desenho ----
     const base = (await savedDrawing()).strokes.length;
-    await tool(1); await drag([at(150, 700), at(260, 760), at(380, 720)]);                    // caneta
-    await tool(2); await drag([at(150, 800), at(400, 800)]);                                   // marca-texto
-    await tool(4); await drag([at(500, 750), at(650, 850)]);                                   // seta
-    await tool(5); await drag([at(700, 700), at(900, 850)]);                                   // retangulo
-    await tool(6); await drag([at(150, 830), at(330, 900)]);                                   // elipse
-    await tool(7); click(...at(500, 880)); await sleep(500);                                   // texto
+    await tool(1); await drag([at(150, 700), at(260, 760), at(380, 720)]);
+    await tool(2); await drag([at(150, 800), at(400, 800)]);
+    await tool(4); await drag([at(500, 750), at(650, 850)]);
+    await tool(5); await drag([at(700, 700), at(900, 850)]);
+    await tool(6); await drag([at(150, 830), at(330, 900)]);
+    await tool(7); click(...at(500, 880)); await sleep(500);
     check('ferramenta texto abre dialogo', await run(`!!document.querySelector('[role=dialog] input')`));
     await run(`(() => { ${setNative} setValue(document.querySelector('[role=dialog] input'), 'Entrada A'); })()`);
     await sleep(150);
@@ -129,7 +121,6 @@ async function main() {
     check('texto salvo', afterTools.strokes.find((s) => s.kind === 'text')?.text === 'Entrada A');
     check('largura do marca-texto e maior que a da caneta', afterTools.strokes.find((s) => s.kind === 'highlighter').width > afterTools.strokes.find((s) => s.kind === 'pen').width);
 
-    // borracha e desfazer
     await tool(8); await drag([at(260, 160), at(300, 220), at(340, 230)]);
     await saveNow();
     const afterErase = await savedDrawing();
@@ -137,7 +128,6 @@ async function main() {
     key('Z', ['control']); await sleep(300); await saveNow();
     check('Ctrl+Z restaura o que a borracha apagou', (await savedDrawing()).strokes.length === afterTools.strokes.length);
 
-    // ---- pan e zoom ----
     check('zoom inicial 100%', (await run(`document.querySelector('.tb-zoom').textContent`)) === '100%');
     window.webContents.sendInputEvent({ type: 'mouseWheel', x: Math.round(rect.l + rect.w / 2), y: Math.round(rect.t + rect.h / 2), deltaX: 0, deltaY: 240, canScroll: true });
     await sleep(300);
@@ -153,16 +143,14 @@ async function main() {
     await run(`document.querySelector('.tb-zoom').click()`); await sleep(200);
     check('clicar no % reenquadra (100%)', (await run(`document.querySelector('.tb-zoom').textContent`)) === '100%');
 
-    // ---- filtros de granadas ----
     await run(`document.querySelector('.tb-with-dot .tb-btn').click()`); await sleep(250);
-    await run(`document.querySelectorAll('.tb-filters input[type=checkbox]')[3].click()`); await sleep(250);   // oculta molotov
+    await run(`document.querySelectorAll('.tb-filters input[type=checkbox]')[3].click()`); await sleep(250);
     check('filtro ativo mostra indicador', await run(`!!document.querySelector('.tb-dot')`));
     await shot('05-board-filtros');
     await run(`document.querySelector('.tb-filters .btn').click()`); await sleep(200);
     check('"Mostrar tudo" limpa os filtros', await run(`!document.querySelector('.tb-dot')`));
     await run(`document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`);
 
-    // ---- gaveta direita (clique no adesivo) ----
     await tool(0);
     const stickerPoint = at(400, 600);
     click(...stickerPoint); await sleep(900);
@@ -171,7 +159,7 @@ async function main() {
     await shot('06-board-gaveta-direita');
     await run(`document.querySelector('.drawer-right .drawer-head .icon-button').click()`); await sleep(200);
     check('gaveta fecha', await run(`!document.querySelector('.drawer-right')`));
-    await tool(1);                                                    // com a caneta, arrastar o adesivo o move
+    await tool(1);
     const m = at(700, 500);
     await drag([m, [m[0] - 30, m[1] + 20], [m[0] - 60, m[1] + 40]]);
     check('arrastar adesivo nao abre a gaveta', await run(`!document.querySelector('.drawer-right')`));
@@ -179,7 +167,6 @@ async function main() {
     const moved = (await savedDrawing()).stickers.find((s) => s.type === 'molotov');
     check('adesivo arrastado foi movido e salvo', moved.x < 690 && moved.y > 510, `${moved.x},${moved.y}`);
 
-    // ---- playbook e midia ----
     await tab(1); await sleep(500);
     await run(`document.querySelector('.playbook-list li button')?.click()`); await shot('07-playbook');
     check('playbook mostra o desenho colado e o markdown', await run(`!!document.querySelector('.playbook-preview canvas.drawing-preview') && document.querySelector('.playbook-preview strong')?.textContent === 'forte'`));
@@ -187,7 +174,6 @@ async function main() {
     await run(`document.querySelector('.tree-node:not(.active)')?.click()`); await shot('08-media');
     check('explorador de midia mostra pasta e arquivo', await run(`document.querySelectorAll('.folder-tree .tree-node').length >= 2 && !!document.querySelector('.media-card')`));
 
-    // ---- biblioteca de demos ----
     await tab(3); await sleep(500);
     check('aba demos sem demo mostra o explorer vazio', await run(`!!document.querySelector('.demo-explorer .demo-empty')`));
     await shot('09-demo-explorer-vazio');
@@ -210,7 +196,6 @@ async function main() {
     await run(`(() => { ${setNative} setValue(document.querySelector('.explorer-toolbar select'), 'all'); })()`); await sleep(200);
     await shot('10-demo-explorer');
 
-    // ---- demo viewer (mirage) ----
     const rowOf = (map) => `[...document.querySelectorAll('.demo-row')].find(r => r.textContent.toLowerCase().includes('${map}')).querySelector('.btn-2d').click()`;
     await run(rowOf('mirage')); await sleep(1500);
     check('abrir demo: palco em tela cheia com radar, anotacoes e HUD', await run(`(() => { const s = document.querySelector('.demo-stage'); const r = s.getBoundingClientRect(); return !!s.querySelector('.radar-canvas') && !!s.querySelector('.surface.annotation-layer') && r.width > window.innerWidth - 4 && !!s.querySelector('.timeline-bar') && s.querySelectorAll('.team-card').length === 2 && s.querySelectorAll('.round-chip').length === 3; })()`));
@@ -232,7 +217,6 @@ async function main() {
     key('F'); await sleep(200);
     check('timeline mostra fase da bomba e abates', await run(`!!document.querySelector('.tl-seg.bomb') || document.querySelectorAll('.tl-mark').length > 0`));
 
-    // anotacoes sobre o radar
     const stage = await run(`(() => { const r = document.querySelector('.surface.annotation-layer canvas').getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height }; })()`);
     const overlayPixels = `(() => { const c = document.querySelector('.surface.annotation-layer canvas'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; })()`;
     check('overlay de anotacoes comeca vazio', (await run(overlayPixels)) === 0);
@@ -256,7 +240,6 @@ async function main() {
     key('Escape'); await sleep(300);
     check('Esc fecha os atalhos', await run(`!document.querySelector('.hotkeys-grid')`));
 
-    // ---- mapa de dois andares (nuke) ----
     await run(`[...document.querySelectorAll('.hud-btn')].find(b => b.textContent.includes('Voltar')).click()`); await sleep(500);
     await run(rowOf('nuke')); await sleep(1500);
     const layers = await run(`!!document.querySelector('.draw-toolbar [aria-label="Andares"]')`);
@@ -271,7 +254,6 @@ async function main() {
     check('L alterna o andar em foco (sem dividir)', true);
     await run(`[...document.querySelectorAll('.hud-btn')].find(b => b.textContent.includes('Voltar')).click()`); await sleep(300);
 
-    // ---- exportar / importar (inclui demos) ----
     const exportPath = '/tmp/smoke-export.csdraw';
     await fs.rm(exportPath, { force: true });
     dialog.showSaveDialog = async () => ({ canceled: false, filePath: exportPath });
@@ -290,7 +272,6 @@ async function main() {
     await run(`document.querySelector('.dialog button[type=submit]').click()`); await sleep(2200);
     check('importar com a senha certa funciona sem duplicar', (await run(`window.csdraw.drawings.list().then(l => l.length)`)) === 1 && (await run(`window.csdraw.demos.list().then(l => l.length)`)) === 2);
 
-    // ---- idiomas ----
     check('seletor de idioma ao lado do tema', await run(`document.querySelector('.header-actions .theme-switch + .lang-select') !== null`));
     const spoken = {};
     for (const code of ['en', 'es', 'ru', 'pt-BR']) {
@@ -301,7 +282,6 @@ async function main() {
     check('troca de idioma (en/es/ru/pt-BR) atualiza a interface', spoken.en === 'Tactical board|en' && spoken.es === 'Pizarra táctica|es' && spoken.ru === 'Тактическая доска|ru' && spoken['pt-BR'] === 'Quadro tático|pt-BR', JSON.stringify(spoken));
     check('idioma fica salvo', (await run(`localStorage.getItem('csdraw-locale')`)) === 'pt-BR');
 
-    // erro do processo principal traduzido pelo codigo (precisa do codigo atravessar o contextBridge)
     await run(`(() => { ${setNative} setValue(document.querySelector('.lang-select'), 'en'); })()`); await sleep(300);
     await run(`[...document.querySelectorAll('.auth-links a')][1].click()`); await sleep(300);
     await run(`(() => { ${setNative} setValue(document.querySelector('.dialog input[type=password]'), 'senha-errada-000'); })()`); await sleep(200);
@@ -310,7 +290,6 @@ async function main() {
     await run(`document.querySelector('.dialog .btn-ghost').click()`); await sleep(200);
     await run(`(() => { ${setNative} setValue(document.querySelector('.lang-select'), 'pt-BR'); })()`); await sleep(300);
 
-    // ---- tema ----
     await run(`document.querySelector('.theme-switch').click()`); await shot('16-board-claro');
     check('tema claro aplicado', (await run(`document.documentElement.dataset.theme`)) === 'light');
     await run(`document.querySelector('.theme-switch').click()`); await sleep(300);

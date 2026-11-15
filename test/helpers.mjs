@@ -1,6 +1,5 @@
 export const TICK_RATE = 64;
 
-/** Motor de parser falso: gera uma partida sintetica (rounds, kills, granadas, bomba, movimento). */
 export function createFakeEngine({ perSide = 2, movement = false, rounds = DEFAULT_ROUNDS, failExtendedProps = false, failInventory = false, failInventoryIds = false, failGrenades = false, clanNames = null, mapName = 'de_mirage', groundItems = null, failGroundItems = false } = {}) {
   const ids = Array.from({ length: perSide * 2 }, (_, i) => String(i + 1));
   const isTeamA = (id) => Number(id) <= perSide;
@@ -21,7 +20,6 @@ export function createFakeEngine({ perSide = 2, movement = false, rounds = DEFAU
   kills.forEach(([tick, a, v]) => events.push({ event_name: 'player_death', tick, attacker_name: `P${a}`, attacker_steamid: a, user_name: `P${v}`, user_steamid: v, weapon: 'weapon_m4a1', headshot: false }));
 
   const weaponsApi = groundItems ? {
-    // demoparser2 >= o que traz parseWeapons: armas sem dono, uma linha por entidade por tick pedido
     parseWeapons: (_path, _extra, ticks) => {
       if (failGroundItems) throw new Error('parseWeapons indisponivel');
       const wanted = ticks ? new Set(ticks) : null;
@@ -71,24 +69,22 @@ export const DEFAULT_ROUNDS = [
   { freeze: 5120, end: 6400, winner: 'CT' }
 ];
 
-/** Projeteis das granadas do evento: smoke (com quique), molotov e flash, mais uma entidade parada que nao liga a nada. */
 function grenadeRows() {
   const row = (entity, type, thrower, tick, x, y) => ({ grenade_entity_id: entity, grenade_type: type, steamid: thrower, name: `P${thrower}`, tick, x, y, z: 100 });
   const rows = [];
-  for (let tick = 1; tick <= 64; tick += 1) rows.push(row(5, 'CSmokeGrenadeProjectile', '1', tick, 10, 10)); // entidade parada do inicio da partida
+  for (let tick = 1; tick <= 64; tick += 1) rows.push(row(5, 'CSmokeGrenadeProjectile', '1', tick, 10, 10));
   for (let tick = 800; tick <= 960; tick += 1) {
-    const x = tick <= 860 ? -10 * (tick - 800) : tick <= 900 ? -600 - 7.5 * (tick - 860) : -900; // quica em 860 e para em 900
+    const x = tick <= 860 ? -10 * (tick - 800) : tick <= 900 ? -600 - 7.5 * (tick - 860) : -900;
     rows.push(row(77, 'CSmokeGrenadeProjectile', '1', tick, x, -1500));
   }
   for (let tick = 1030; tick <= 1100; tick += 1) rows.push(row(90, 'CMolotovProjectile', '2', tick, (-400 * (tick - 1030)) / 70, -1100));
   for (let tick = 1150; tick <= 1200; tick += 1) rows.push(row(91, 'CFlashbangProjectile', '2', tick, (-1100 * (tick - 1150)) / 50, -900));
-  rows.push({ grenade_entity_id: 300, grenade_type: 'CSmokeGrenade', steamid: '1', name: 'P1', tick: 800, x: 0, y: 0, z: 0 }); // arma segurada: ignorada
+  rows.push({ grenade_entity_id: 300, grenade_type: 'CSmokeGrenade', steamid: '1', name: 'P1', tick: 800, x: 0, y: 0, z: 0 });
   return rows;
 }
 
 const ITEM_IDS = { Knife: 42, 'Glock-18': 4, 'AK-47': 7, 'Smoke Grenade': 45, Flashbang: 43, 'High Explosive Grenade': 44, Molotov: 46, 'Incendiary Grenade': 48, 'Decoy Grenade': 47, 'C4 Explosive': 49 };
 
-/** Troca o inventario do jogador `id` (nomes de item) entre os ticks `from` e `to`; o resto da partida segue igual. */
 export function withInventory(engine, id, inventory, { from = 0, to = Infinity, ...extra } = {}) {
   const parseTicks = engine.parseTicks;
   engine.parseTicks = (path, props, ticks) => parseTicks(path, props, ticks).map((row) => (row.steamid === id && row.inventory && row.tick >= from && row.tick <= to
@@ -97,10 +93,6 @@ export function withInventory(engine, id, inventory, { from = 0, to = Infinity, 
   return engine;
 }
 
-/**
- * Linhas de `parseWeapons` para uma entidade no chao: uma por tick em [from, to]; `place(tick)` devolve [x, y, z];
- * `owner` e o dono anterior (steamid) e `skip` lista ticks em que alguem a tinha na mao (sem linha).
- */
 export function groundRows({ entity, weapon = 'Flashbang', owner = null, from, to, place = () => [0, 0, 0], skip = [] }) {
   const rows = [];
   for (let tick = from; tick <= to; tick += 1) {

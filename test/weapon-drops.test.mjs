@@ -5,7 +5,6 @@ import { WeaponDrops } from '../electron/core/demo/WeaponDrops.js';
 import { DropMotion } from '../renderer/src/modules/demo-viewer/core/DropMotion.js';
 import { createFakeEngine, groundRows } from './helpers.mjs';
 
-// Round 1 do parser falso: ticks 0..1920 (64/s). O jogador 3 morre no tick 1000 (inventario com smoke, 2 flashes e HE).
 const seconds = (tick) => Math.round((tick / 64) * 100) / 100;
 const round = (options) => new DemoAnalyzer(createFakeEngine(options)).analyze('x.dem').rounds[0];
 const flash = (extra) => groundRows({ entity: 900, weapon: 'Flashbang', ...extra });
@@ -20,7 +19,6 @@ test('morte: o item que o servidor colocou no chao e o que cai; as outras granad
 });
 
 test('rolagem e queda: o percurso e o das entidades tick a tick, e o item para onde o servidor o deixou', () => {
-  // cai de 160 a 100 em 20 ticks enquanto rola 5 unidades por tick durante 30 ticks; depois fica parado ate o tick 1300
   const place = (tick) => { const n = Math.min(30, tick - 1200); return [100 + 5 * n, 40, 160 - 60 * Math.min(1, n / 20)]; };
   const [drop] = round({ perSide: 2, groundItems: flash({ owner: '2', from: 1200, to: 1300, place }) }).drops;
   assert.equal(drop.death, false);
@@ -29,14 +27,12 @@ test('rolagem e queda: o percurso e o das entidades tick a tick, e o item para o
   assert.deepEqual(drop.path.at(-1), [seconds(30), 250, 40, 100], 'a parte parada do fim nao entra no percurso');
   assert.ok(drop.path.length >= 20 && drop.path.length <= 32, 'um ponto por mudanca de posicao, nao um por tick parado');
   assert.equal(drop.until, seconds(1301));
-  // o viewer segue o percurso: no meio ainda esta no ar, depois do repouso nao se mexe
   const mid = DropMotion.at(drop, drop.t + 0.2);
   assert.ok(mid.x > 100 && mid.x < 250 && mid.lift > 0);
   assert.deepEqual([DropMotion.at(drop, drop.t + 5).x, DropMotion.at(drop, drop.t + 5).lift], [250, 0]);
 });
 
 test('parada lenta (rolando devagar ate parar): o instante e o ponto exatos do repouso entram no percurso', () => {
-  // 0,4 unidade por tick durante 22 ticks (abaixo do passo minimo de um ponto por tick) e para
   const place = (tick) => [100 + 0.4 * Math.min(22, tick - 1200), 40, 100];
   const [drop] = round({ perSide: 2, groundItems: flash({ owner: '2', from: 1200, to: 1300, place }) }).drops;
   assert.deepEqual(drop.path.at(-1), [seconds(22), 108.8, 40, 100]);
@@ -82,7 +78,7 @@ test('so granadas, C4 e kit entram; um id de entidade reaproveitado por outro it
 
 test('sem parseWeapons, sem granadas nele ou com falha: volta ao palpite por eventos/inventario', () => {
   const guess = (drops) => drops.map((d) => [d.type, d.death]);
-  const expected = [['smoke', true]]; // padrao: a mais cara do inventario da vitima
+  const expected = [['smoke', true]];
   assert.deepEqual(guess(round({ perSide: 2 }).drops), expected, 'parser antigo (sem parseWeapons)');
   assert.deepEqual(guess(round({ perSide: 2, groundItems: groundRows({ entity: 7, weapon: 'AK-47', owner: '3', from: 1000, to: 1900 }) }).drops), expected, 'so rifles no chao: nao prova que ele enxerga granadas');
   assert.deepEqual(guess(round({ perSide: 2, groundItems: [], failGroundItems: true }).drops), expected, 'lista vazia');

@@ -5,7 +5,6 @@ import { DropPhysics } from '../electron/core/demo/DropPhysics.js';
 import { DropTracker } from '../electron/core/demo/DropTracker.js';
 import { createFakeEngine, withInventory } from './helpers.mjs';
 
-// Round 1 do parser falso: ticks 0..1920 (64/s). O jogador 3 morre no tick 1000; o jogador 1 pega uma smoke no tick 1300.
 const seconds = (tick) => Math.round((tick / 64) * 100) / 100;
 
 function engineWith(extraEvents = [], tweakRows = (row) => row, options = { perSide: 2 }, dropEvents = []) {
@@ -20,8 +19,6 @@ const round = (engine) => new DemoAnalyzer(engine).analyze('x.dem').rounds[0];
 const remove = (tick, who, item, x, y, extra = {}) => ({ event_name: 'item_remove', tick, user_steamid: who, item, user_X: x, user_Y: y, user_Z: 100, user_yaw: 0, user_pitch: 0, ...extra });
 const pick = (tick, who, item, x, y) => ({ event_name: 'item_pickup', tick, user_steamid: who, item, user_X: x, user_Y: y });
 const voluntary = (events, ...rest) => round(engineWith(events, ...rest)).drops.filter((d) => !d.death);
-
-// ---- largar e pegar rapido ----
 
 test('largar e pegar dentro do mesmo quadro (inventario nao muda): o drop existe e some na hora da pega', () => {
   const [drop, ...others] = voluntary([remove(1500, '2', 'weapon_flashbang', 500, 500), pick(1510, '2', 'flashbang', 560, 500)]);
@@ -45,12 +42,10 @@ test('varios itens de uma vez (flash, smoke e HE largados em sequencia) viram tr
 });
 
 test('a pega fecha o drop mais perto de onde o item parou, e so os que ja existiam', () => {
-  // A em (300,0) para perto de (440,0); B em (600,0) para perto de (740,0): quem pega em (650,0) esta encostado em B
   const events = [remove(1500, '2', 'weapon_flashbang', 300, 0), remove(1520, '2', 'weapon_flashbang', 600, 0), pick(1600, '1', 'flashbang', 650, 0)];
   const [a, b] = voluntary(events);
   assert.equal(a.until, null, 'A continua no chao');
   assert.equal(b.until, seconds(1600), 'B foi pega');
-  // pega ANTES do drop existir nao o fecha
   const [late] = voluntary([remove(1500, '2', 'weapon_flashbang', 500, 500), pick(1450, '1', 'flashbang', 500, 500)]);
   assert.equal(late.until, null);
 });
@@ -64,8 +59,6 @@ test('so a pega do mesmo tipo fecha o drop', () => {
   const [drop] = voluntary([remove(1500, '2', 'weapon_flashbang', 0, 0), pick(1520, '1', 'smokegrenade', 0, 0), pick(1530, '1', 'hegrenade', 0, 0)]);
   assert.equal(drop.until, null);
 });
-
-// ---- item_remove: o que nao e drop ----
 
 test('item_remove da morte, do arremesso e do inicio do round nao viram drop de proposito', () => {
   assert.equal(voluntary([remove(1000, '3', 'weapon_flashbang', -1200, -1000)]).length, 0, 'no tick da morte do proprio jogador');
@@ -95,15 +88,11 @@ test('sem item_pickup na demo, o inventario que cresceu fecha o drop; com item_p
   assert.equal(voluntary(drop, grow)[0].until, null, 'a demo traz item_pickup: so ele manda (comprar uma flash perto nao pega a do chao)');
 });
 
-// ---- morte ----
-
 test('sem o inventario lido nenhuma granada cai na morte (nao ha como saber qual e a mais cara)', () => {
   assert.equal(round(engineWith([], (row) => row, { perSide: 2, failInventory: true, failInventoryIds: true })).drops.length, 0);
 });
 
 test('a ultima leitura antes da morte vem do tick anterior, nao do quadro de 0,25 s', () => {
-  // o jogador 3 so tem a flash ate o tick 996 e a smoke depois (a "compra" foi no tick 997, 3 ticks antes de morrer);
-  // o quadro de 4 Hz (tick 992) ainda mostra a flash: so a leitura do tick 999 acerta
   const engine = withInventory(withInventory(engineWith([]), '3', ['Knife', 'Flashbang'], { to: 996 }), '3', ['Knife', 'Smoke Grenade'], { from: 997 });
   assert.deepEqual(round(engine).drops.filter((d) => d.death).map((d) => d.type), ['smoke']);
 });
@@ -114,15 +103,12 @@ test('C4 e kit de defuse caem na morte, junto com a unica granada', () => {
 });
 
 test('kit de defuse nao pode ser largado: sumir do inventario ou item_remove de kit nunca e drop (so morte)', () => {
-  // o jogador 1 (CT) tem o kit ate o tick 400 (6 s: depois do 1o segundo do round) e perde-o sem morrer
   const lose = (row) => (row.steamid === '1' && row.inventory ? { ...row, has_defuser: row.tick < 400 } : row);
   assert.equal(round(engineWith([], lose)).drops.filter((d) => d.type === 'defuser').length, 0, 'queda de has_defuser entre quadros');
   assert.equal(round(engineWith([remove(500, '1', 'item_defuser', 50, 20)])).drops.filter((d) => d.type === 'defuser').length, 0, 'item_remove de kit');
   const died = (row) => (row.steamid === '3' && row.inventory ? { ...row, has_defuser: true } : row);
   assert.deepEqual(round(engineWith([], died)).drops.filter((d) => d.type === 'defuser').map((d) => d.death), [true], 'na morte o kit cai');
 });
-
-// ---- sondagens e fisica ----
 
 test('sondagens: 1 e 6 ticks antes de cada morte e item_remove, so dentro dos rounds', () => {
   const rounds = [{ startTick: 100, endTick: 200 }];

@@ -1,4 +1,3 @@
-/** Mantem o canvas com o tamanho do elemento (e devicePixelRatio) e informa o viewport. */
 export class CanvasHost {
   #canvas;
   #viewport;

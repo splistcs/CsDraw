@@ -6,10 +6,6 @@ import { useFeedback } from '../../shared/ui/FeedbackProvider.jsx';
 import { DemoExplorer } from './DemoExplorer.jsx';
 import { DemoStage } from './DemoStage.jsx';
 
-/**
- * Demo viewer 2D (estilo Skybox). Sem demo aberta mostra a biblioteca (explorer); ao abrir uma demo,
- * o replay ocupa a tela toda. Modulo independente: so usa window.csdraw.demos e utilitarios de shared/.
- */
 export default function DemoViewerModule({ isActive }) {
   const { t, errorMessage } = useI18n();
   const { notify, askText, confirm } = useFeedback();

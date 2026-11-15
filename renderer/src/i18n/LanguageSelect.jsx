@@ -1,7 +1,6 @@
 import { LOCALES } from './locales/index.js';
 import { useI18n } from './I18nProvider.jsx';
 
-/** Menu suspenso de idioma (fica ao lado do interruptor de tema). */
 export function LanguageSelect() {
   const { locale, setLocale, t } = useI18n();
   return (

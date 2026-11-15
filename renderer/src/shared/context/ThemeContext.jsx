@@ -10,7 +10,6 @@ export function ThemeProvider({ children }) {
     try {
       localStorage.setItem('csdraw-theme', theme);
     } catch {
-      /* armazenamento indisponivel: ignora */
     }
   }, [theme]);
 

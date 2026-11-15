@@ -1,6 +1,5 @@
 import { GrenadeCatalog } from '../constants/GrenadeCatalog.js';
 
-/** Pre-carrega e guarda em cache os PNGs das granadas para uso no canvas. */
 export class GrenadeSprites {
   static #images = new Map();
   static #loading = null;
@@ -16,7 +15,7 @@ export class GrenadeSprites {
                 GrenadeSprites.#images.set(grenade.type, image);
                 resolve();
               };
-              image.onerror = resolve; // sem PNG: o canvas usa o emoji
+              image.onerror = resolve;
               image.src = grenade.imageUrl;
             })
         )

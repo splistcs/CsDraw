@@ -1,2 +1,0 @@
-Miniaturas dos mapas (lista de demos do demo viewer): <slug>.png, 512x512.
-Se uma miniatura nao existir, a lista usa o radar (../maps/<slug>.png).

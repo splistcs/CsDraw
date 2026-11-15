@@ -12,12 +12,9 @@ export function Header({ onOpenVault, onCheckUpdates, checkingUpdates, version }
   return (
     <header className="header">
       <div className="brand">
-        <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
-          <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" strokeWidth="2.5" />
-          <path d="M16 2v8M16 22v8M2 16h8M22 16h8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-          <circle cx="16" cy="16" r="2.5" fill="var(--accent)" />
-        </svg>
-        <span className="brand-name">CSDraw</span>
+        <img className="brand-icon" src="./brand-grenade.png" width="38" height="38" alt="" aria-hidden="true" draggable="false" />
+        <span className="brand-name">CsDraw</span>
+        <span className="brand-by">by splistcs</span>
       </div>
 
       <HeaderSlot />

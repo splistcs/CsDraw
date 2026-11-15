@@ -1,4 +1,3 @@
-/** Biblioteca do usuario (desenhos, playbooks, pastas, indice de midias) em um unico blob criptografado. */
 export class LibraryStore {
   static BLOB_ID = 'library';
   static VERSION = 1;
@@ -26,7 +25,6 @@ export class LibraryStore {
     return this.#data;
   }
 
-  /** Aplica a mutacao e grava em disco (gravacoes sao serializadas). */
   async mutate(mutator) {
     const result = mutator(this.#data);
     await this.persist();

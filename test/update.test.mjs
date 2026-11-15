@@ -3,7 +3,6 @@ import { EventEmitter } from 'node:events';
 import { mock, test } from 'node:test';
 import { UpdateService, UpdateStatus, releasesUrlFrom, shortError } from '../electron/core/update/UpdateService.js';
 
-/** autoUpdater falso: `script(updater)` emite os eventos que o electron-updater emitiria durante a verificacao. */
 function fakeUpdater(script = () => {}) {
   const updater = Object.assign(new EventEmitter(), {
     checks: 0,
@@ -74,7 +73,7 @@ test('erro: estado de erro com mensagem curta, sem lancar; permite tentar de nov
   assert.equal(state.status, UpdateStatus.ERROR);
   assert.equal(state.error, '404 latest.yml');
 
-  fail = false; // o erro nao trava o servico: a proxima verificacao roda normalmente
+  fail = false;
   const retry = await service.check();
   assert.equal(updater.checks, 2);
   assert.deepEqual([retry.status, retry.error], [UpdateStatus.UP_TO_DATE, null]);
@@ -120,7 +119,7 @@ test('start agenda a primeira verificacao e as periodicas; stop cancela', async 
   const updater = fakeUpdater((u) => u.emit('update-not-available', {}));
   const service = make(updater, { startDelayMs: 1000, intervalMs: 5000 });
   service.start();
-  service.start(); // idempotente
+  service.start();
   assert.equal(updater.checks, 0);
   mock.timers.tick(1000);
   await new Promise((resolve) => setImmediate(resolve));

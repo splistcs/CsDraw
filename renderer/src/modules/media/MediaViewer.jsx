@@ -4,7 +4,6 @@ import { mediaUrl } from '../../shared/api/api.js';
 import { Modal } from '../../shared/ui/Modal.jsx';
 import { Format } from '../../shared/utils/format.js';
 
-/** Visualizador: imagem ampliada ou player de video (com busca, graças ao suporte a Range). */
 export function MediaViewer({ items, index, onChange, onClose }) {
   const { t } = useI18n();
   const item = items[index];

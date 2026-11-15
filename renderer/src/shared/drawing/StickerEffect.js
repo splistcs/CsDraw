@@ -2,7 +2,6 @@ const random = (min, max) => min + Math.random() * (max - min);
 const clamp = (value) => Math.min(1, Math.max(0, value));
 const easeOut = (t) => 1 - (1 - t) ** 3;
 
-/** Animacao curta exibida quando uma granada e colocada no mapa (fogo, fumaca, flash, explosao). */
 export class StickerEffect {
   static DURATIONS = { he: 900, flash: 750, smoke: 2600, molotov: 2400, incendiary: 2400, decoy: 1000 };
 

@@ -2,7 +2,6 @@ import { Fragment, useEffect, useRef } from 'react';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { Icon } from '../../shared/ui/Icons.jsx';
 
-/** Seletor de rounds (numeros coloridos pelo lado vencedor; linha pontilhada quando os times trocam de lado). */
 export function RoundBar({ rounds, selectedIndex, onSelect }) {
   const { t } = useI18n();
   const listRef = useRef(null);

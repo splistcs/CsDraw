@@ -3,7 +3,6 @@ import { useI18n } from '../../i18n/I18nProvider.jsx';
 const hasFiles = (event) => event.dataTransfer.types.includes('Files');
 const MEDIA_TYPE = 'application/x-csdraw-media';
 
-/** Arvore de pastas; aceita soltar midias (mover) e arquivos do sistema (importar). */
 export function FolderTree({ folders, currentId, onSelect, onDropMedia, onDropFiles }) {
   const { t } = useI18n();
   const childrenOf = (parentId) => folders.filter((f) => f.parentId === parentId).sort((a, b) => a.name.localeCompare(b.name));

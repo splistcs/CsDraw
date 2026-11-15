@@ -8,7 +8,6 @@ import { VaultKeyProvider } from '../core/vault/VaultKeyProvider.js';
 import { DemoRepository, DrawingRepository, MediaRepository, PlaybookRepository } from '../core/vault/repositories.js';
 import { DrawingService, MediaService, PlaybookService } from '../core/vault/services.js';
 
-/** Raiz de composicao: cria e conecta todos os servicos do processo principal. */
 export class ServiceContainer {
   static async create({ userDataPath, osCrypto }) {
     const root = path.join(userDataPath, 'vault');

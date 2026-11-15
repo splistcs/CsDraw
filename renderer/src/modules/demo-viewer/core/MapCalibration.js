@@ -1,10 +1,3 @@
-/**
- * Calibracao do radar (pos_x, pos_y, escala) de cada mapa, no formato dos arquivos "overview" do jogo.
- * Valores dos mapas do pool principal; se algum radar desalinhar (o Valve ajusta mapas), use
- * "Auto-ajustar" no viewer ou corrija a linha. O radar do andar de baixo usa a mesma calibracao.
- * Mapas que nao estao aqui (ou cuja calibracao erra o chao) sao alinhados pela imagem do radar (CalibrationFit).
- * Cache nao esta aqui: o radar instalado e o da versao do CS2, diferente do CS:GO que a tabela antiga descrevia.
- */
 export class MapCalibration {
   static KNOWN = {
     ancient: { x: -2953, y: 2164, scale: 5.0 },
@@ -22,7 +15,6 @@ export class MapCalibration {
     shoots: { x: -1368, y: 1952, scale: 2.6875 }
   };
 
-  /** Altura (z) abaixo da qual o jogador esta no andar de baixo (mapas de dois andares). */
   static LOWER_LEVEL_MAX_Z = { nuke: -495, vertigo: 11700 };
 
   static find(slug) {

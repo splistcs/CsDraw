@@ -20,7 +20,7 @@ function Fatal() {
   const { t } = useI18n();
   return (
     <div className="fatal">
-      <h1>CSDraw</h1>
+      <h1>CsDraw</h1>
       <p>{t('app.needsElectron')}</p>
     </div>
   );
@@ -48,8 +48,6 @@ function Shell() {
   const [vaultMode, setVaultMode] = useState(null);
   const [checking, setChecking] = useState(false);
 
-  // Verificacao pedida pelo usuario: responde sempre (versao em dia, so no app instalado, ou falha com atalho manual).
-  // Download e "pronta para instalar" aparecem no UpdateBanner.
   const checkUpdates = async () => {
     setChecking(true);
     try {
@@ -66,7 +64,6 @@ function Shell() {
     }
   };
 
-  // Soltar um arquivo fora de uma area de upload nao pode navegar a janela para ele.
   useEffect(() => {
     const block = (event) => event.preventDefault();
     window.addEventListener('dragover', block);

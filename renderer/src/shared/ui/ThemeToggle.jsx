@@ -1,7 +1,6 @@
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 
-/** Interruptor simples entre sol (claro) e lua (escuro). */
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
   const { t } = useI18n();

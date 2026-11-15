@@ -9,7 +9,6 @@ export function ShellProvider({ children }) {
   return <ShellContext.Provider value={value}>{children}</ShellContext.Provider>;
 }
 
-/** Area central do cabecalho; cada modulo pode colocar controles proprios la via HeaderPortal. */
 export function HeaderSlot() {
   const { setHeaderSlot } = useContext(ShellContext);
   return <div className="header-center" ref={setHeaderSlot} />;

@@ -9,10 +9,9 @@ const THUMBNAIL_PATTERN = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]*$/
 const SHAPE_KINDS = ['line', 'arrow', 'rect', 'ellipse'];
 const GRENADE_TYPES = ['he', 'flash', 'smoke', 'molotov', 'incendiary', 'decoy'];
 
-/** Utilitarios de validacao compartilhados. */
 export class Validate {
-  static id(value, label = 'identificador') {
-    if (typeof value !== 'string' || !ID_PATTERN.test(value)) throw new AppError(`Valor inválido para ${label}.`, 'INVALID');
+  static id(value, label = 'identifier') {
+    if (typeof value !== 'string' || !ID_PATTERN.test(value)) throw new AppError(`Invalid value for ${label}.`, 'INVALID');
     return value;
   }
 
@@ -23,7 +22,7 @@ export class Validate {
   static text(value, { min = 0, max, label }) {
     const text = typeof value === 'string' ? value.trim() : '';
     if (text.length < min || text.length > max) {
-      throw new AppError(`${label}: use entre ${min} e ${max} caracteres.`, 'INVALID');
+      throw new AppError(`${label}: use between ${min} and ${max} characters.`, 'INVALID');
     }
     return text;
   }
@@ -38,17 +37,16 @@ export class Validate {
   }
 }
 
-/** Valida desenhos (tracos, adesivos com imagens e legendas). */
 export class DrawingValidator {
   static validate(body) {
-    if (!body || typeof body !== 'object') throw new AppError('Desenho inválido.', 'INVALID');
-    const name = Validate.text(body.name, { min: 1, max: 60, label: 'Nome do desenho' });
-    if (typeof body.mapSlug !== 'string' || !SLUG_PATTERN.test(body.mapSlug)) throw new AppError('Mapa inválido.', 'INVALID');
+    if (!body || typeof body !== 'object') throw new AppError('Invalid drawing.', 'INVALID');
+    const name = Validate.text(body.name, { min: 1, max: 60, label: 'Drawing name' });
+    if (typeof body.mapSlug !== 'string' || !SLUG_PATTERN.test(body.mapSlug)) throw new AppError('Invalid map.', 'INVALID');
     const notes = typeof body.notes === 'string' ? body.notes : '';
-    if (notes.length > 50000) throw new AppError('As anotações excedem 50.000 caracteres.', 'INVALID');
+    if (notes.length > 50000) throw new AppError('Notes exceed 50,000 characters.', 'INVALID');
     const thumbnail = typeof body.thumbnail === 'string' ? body.thumbnail : '';
     if (thumbnail && (thumbnail.length > 300000 || !THUMBNAIL_PATTERN.test(thumbnail))) {
-      throw new AppError('Miniatura inválida.', 'INVALID');
+      throw new AppError('Invalid thumbnail.', 'INVALID');
     }
     return {
       id: body.id === undefined || body.id === null ? null : Validate.id(body.id),
@@ -62,7 +60,7 @@ export class DrawingValidator {
   }
 
   static #strokes(strokes) {
-    if (!Array.isArray(strokes) || strokes.length > 3000) throw new AppError('Traços inválidos.', 'INVALID');
+    if (!Array.isArray(strokes) || strokes.length > 3000) throw new AppError('Invalid strokes.', 'INVALID');
     return strokes.map((stroke) => {
       const kind = stroke?.kind ?? 'pen';
       const isShape = SHAPE_KINDS.includes(kind);
@@ -77,21 +75,21 @@ export class DrawingValidator {
         stroke.points.length >= min &&
         stroke.points.length <= max &&
         stroke.points.every((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite));
-      const text = isText ? Validate.text(stroke?.text ?? '', { min: 1, max: 200, label: 'Texto' }) : null;
-      if (!okKind || !okColor || !okWidth || !okPoints) throw new AppError('Traço inválido.', 'INVALID');
+      const text = isText ? Validate.text(stroke?.text ?? '', { min: 1, max: 200, label: 'Text' }) : null;
+      if (!okKind || !okColor || !okWidth || !okPoints) throw new AppError('Invalid stroke.', 'INVALID');
       const points = stroke.points.map(([x, y]) => [Math.round(x * 10) / 10, Math.round(y * 10) / 10]);
       return text === null ? { kind, color: stroke.color, width: stroke.width, points } : { kind, color: stroke.color, width: stroke.width, points, text };
     });
   }
 
   static #stickers(stickers) {
-    if (!Array.isArray(stickers) || stickers.length > 300) throw new AppError('Adesivos inválidos.', 'INVALID');
+    if (!Array.isArray(stickers) || stickers.length > 300) throw new AppError('Invalid stickers.', 'INVALID');
     return stickers.map((sticker) => {
       if (!GRENADE_TYPES.includes(sticker?.type) || !Number.isFinite(sticker?.x) || !Number.isFinite(sticker?.y)) {
-        throw new AppError('Adesivo inválido.', 'INVALID');
+        throw new AppError('Invalid sticker.', 'INVALID');
       }
       const images = Array.isArray(sticker.images) ? sticker.images : [];
-      if (images.length > 40) throw new AppError('Imagens demais em um adesivo.', 'INVALID');
+      if (images.length > 40) throw new AppError('Too many images in one sticker.', 'INVALID');
       return {
         id: sticker.id ? Validate.id(sticker.id, 'adesivo') : Validate.newId(),
         type: sticker.type,
@@ -99,7 +97,7 @@ export class DrawingValidator {
         y: sticker.y,
         images: images.map((image) => ({
           mediaId: Validate.id(image?.mediaId, 'imagem'),
-          caption: Validate.text(image?.caption ?? '', { max: 300, label: 'Legenda' })
+          caption: Validate.text(image?.caption ?? '', { max: 300, label: 'Caption' })
         }))
       };
     });
@@ -108,18 +106,17 @@ export class DrawingValidator {
 
 export class PlaybookValidator {
   static validate(body) {
-    if (!body || typeof body !== 'object') throw new AppError('Playbook inválido.', 'INVALID');
+    if (!body || typeof body !== 'object') throw new AppError('Invalid playbook.', 'INVALID');
     const content = typeof body.content === 'string' ? body.content : '';
-    if (content.length > 500000) throw new AppError('O playbook excede 500.000 caracteres.', 'INVALID');
+    if (content.length > 500000) throw new AppError('The playbook exceeds 500,000 characters.', 'INVALID');
     return {
       id: body.id === undefined || body.id === null ? null : Validate.id(body.id),
-      name: Validate.text(body.name, { min: 1, max: 80, label: 'Nome do playbook' }),
+      name: Validate.text(body.name, { min: 1, max: 80, label: 'Playbook name' }),
       content
     };
   }
 }
 
-/** Sanitiza uma biblioteca vinda de um arquivo importado (dados nao confiaveis). */
 export class LibrarySanitizer {
   static sanitize(raw) {
     const list = (value) => (Array.isArray(value) ? value : []);
@@ -129,7 +126,7 @@ export class LibrarySanitizer {
         const valid = DrawingValidator.validate(item);
         if (!valid.id) continue;
         drawings.push({ ...valid, createdAt: Validate.isoDate(item.createdAt), updatedAt: Validate.isoDate(item.updatedAt) });
-      } catch { /* ignora item invalido */ }
+      } catch { }
     }
     const playbooks = [];
     for (const item of list(raw?.playbooks)) {
@@ -137,7 +134,7 @@ export class LibrarySanitizer {
         const valid = PlaybookValidator.validate(item);
         if (!valid.id) continue;
         playbooks.push({ ...valid, createdAt: Validate.isoDate(item.createdAt), updatedAt: Validate.isoDate(item.updatedAt) });
-      } catch { /* ignora */ }
+      } catch { }
     }
     const folderIds = new Set();
     const folders = [];
@@ -145,8 +142,8 @@ export class LibrarySanitizer {
       try {
         const id = Validate.id(item?.id);
         folderIds.add(id);
-        folders.push({ id, name: Validate.text(item.name, { min: 1, max: 80, label: 'Pasta' }), parentId: Validate.optionalId(item.parentId), createdAt: Validate.isoDate(item.createdAt) });
-      } catch { /* ignora */ }
+        folders.push({ id, name: Validate.text(item.name, { min: 1, max: 80, label: 'Folder' }), parentId: Validate.optionalId(item.parentId), createdAt: Validate.isoDate(item.createdAt) });
+      } catch { }
     }
     folders.forEach((folder) => { if (folder.parentId && !folderIds.has(folder.parentId)) folder.parentId = null; });
     const media = [];
@@ -156,7 +153,7 @@ export class LibrarySanitizer {
         const folderId = Validate.optionalId(item.folderId);
         media.push({
           id: Validate.id(item.id),
-          name: Validate.text(item.name, { min: 1, max: 160, label: 'Mídia' }),
+          name: Validate.text(item.name, { min: 1, max: 160, label: 'Media' }),
           kind: type.kind,
           mime: type.mime,
           size: Number.isFinite(item.size) ? item.size : 0,
@@ -164,7 +161,7 @@ export class LibrarySanitizer {
           origin: item.origin === 'sticker' ? 'sticker' : 'library',
           createdAt: Validate.isoDate(item.createdAt)
         });
-      } catch { /* ignora */ }
+      } catch { }
     }
     const demos = [];
     for (const item of list(raw?.demos)) {
@@ -174,7 +171,7 @@ export class LibrarySanitizer {
         demos.push({
           id: Validate.id(item.id),
           name: Validate.text(item.name, { min: 1, max: 120, label: 'Demo' }),
-          mapName: Validate.text(item.mapName ?? '', { max: 60, label: 'Mapa' }),
+          mapName: Validate.text(item.mapName ?? '', { max: 60, label: 'Map' }),
           mapSlug: slug,
           uploadedAt: Validate.isoDate(item.uploadedAt),
           fileModifiedAt: Validate.isoDate(item.fileModifiedAt),
@@ -189,7 +186,7 @@ export class LibrarySanitizer {
           parserVersion: typeof item.parserVersion === 'string' ? item.parserVersion.slice(0, 30) : '',
           tags: (Array.isArray(item.tags) ? item.tags : []).slice(0, 20).map((t) => String(t).trim().slice(0, 30)).filter(Boolean)
         });
-      } catch { /* ignora */ }
+      } catch { }
     }
     return { drawings, playbooks, folders, media, demos };
   }

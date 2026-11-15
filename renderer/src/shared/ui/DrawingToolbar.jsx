@@ -16,11 +16,6 @@ function useZoomPercent(viewport) {
   return percent;
 }
 
-/**
- * Barra unica de opcoes do desenho: ferramentas (mover, caneta, marca-texto, formas, texto, borracha),
- * cor, espessura, desfazer/limpar, zoom, filtros de granadas e foco por andar.
- * `filters` so e passado no quadro tatico (o demo viewer nao tem adesivos).
- */
 export function DrawingToolbar({
   viewport, tool, onToolChange, pen, onPenChange, onUndo, onClear,
   filters = null, onFiltersChange, levelCount = 1, onFocusLevel, extra = null

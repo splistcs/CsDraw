@@ -5,7 +5,6 @@ import { MapCatalog } from '../../shared/constants/MapCatalog.js';
 import { EmbedTokens } from '../../shared/markdown/EmbedTokens.js';
 import { Modal } from '../../shared/ui/Modal.jsx';
 
-/** Escolhe um desenho salvo (ou midia do cofre) para colar no playbook. */
 export function EmbedPicker({ onPick, onClose, initialTab = 'drawings' }) {
   const { t } = useI18n();
   const [tab, setTab] = useState(initialTab);
@@ -13,7 +12,7 @@ export function EmbedPicker({ onPick, onClose, initialTab = 'drawings' }) {
   const [drawings, setDrawings] = useState([]);
   const [items, setItems] = useState([]);
   const [folders, setFolders] = useState([]);
-  const [folderId, setFolderId] = useState(null); // pasta aberta na aba de midia (null = raiz da biblioteca)
+  const [folderId, setFolderId] = useState(null);
 
   useEffect(() => {
     api.drawings.list().then(setDrawings).catch(() => {});
@@ -25,14 +24,12 @@ export function EmbedPicker({ onPick, onClose, initialTab = 'drawings' }) {
   const byName = (a, b) => a.name.localeCompare(b.name);
   const folderById = (id) => folders.find((f) => f.id === id);
 
-  // Caminho ate a pasta aberta (biblioteca > pasta > subpasta) para o menu de navegacao.
   const trail = useMemo(() => {
     const path = [];
     for (let f = folderById(folderId); f; f = folderById(f.parentId)) path.unshift(f);
     return path;
   }, [folders, folderId]);
   const subfolders = folders.filter((f) => f.parentId === folderId).sort(byName);
-  // Com busca, procura em toda a biblioteca; sem busca, mostra so o conteudo da pasta aberta.
   const mediaItems = items.filter((i) => (searching ? matches(i.name) : i.folderId === folderId)).sort(byName);
   const folderPath = (id) => [...(function* () { for (let f = folderById(id); f; f = folderById(f.parentId)) yield f.name; })()].reverse().join(' / ');
 

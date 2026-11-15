@@ -14,15 +14,11 @@ import { ArmorBadge } from './ArmorBadge.jsx';
 import { IconImage } from './IconImage.jsx';
 import { UtilityGlyph } from './UtilityGlyph.jsx';
 
-/**
- * Paineis dos dois times (canto superior direito): vida, arma, dinheiro, colete e granadas.
- * Passar o mouse no nome mostra o comando setpos/setang do jogador naquele instante; clicar copia.
- */
 export function TeamPanels({ demo, round, playback }) {
   const { t } = useI18n();
   const { notify } = useFeedback();
   const { time } = usePlaybackSnapshot(playback, 8);
-  const [hover, setHover] = useState(null); // { index, right, top } em pixels da janela
+  const [hover, setHover] = useState(null);
   const sampled = new Map(FrameInterpolator.sample(round.frames, time).map((p) => [p.idx, p]));
   const blinded = BlindState.remaining(round.blinds, time);
   const dead = new Set(round.kills.filter((k) => k.t <= time && k.victim !== null).map((k) => k.victim));
@@ -49,7 +45,6 @@ export function TeamPanels({ demo, round, playback }) {
     }
   };
 
-  // Municao no carregador da arma que ele tem na mao (so armas de fogo; faca, granada e C4 nao mostram).
   const ammoOf = (p) => (p && p.ammo >= 0 && p.weapon >= 0 && HeldItem.of(demo.weapons[p.weapon]).kind === 'gun' ? p.ammo : null);
 
   const nades = (packed, side) => GrenadeLoadout.items(packed).flatMap(({ type, count }) => (
@@ -69,7 +64,6 @@ export function TeamPanels({ demo, round, playback }) {
           const p = sampled.get(index);
           const isDead = dead.has(index) || (p?.hp ?? 0) <= 0;
           const hp = isDead ? 0 : p?.hp ?? 100;
-          // Arma do inventario (principal ou pistola); demos antigas so tem a arma na mao.
           const weaponIndex = p ? (p.mainWeapon >= 0 ? p.mainWeapon : p.weapon) : -1;
           const weapon = weaponIndex >= 0 ? demo.weapons[weaponIndex] : '';
           const weaponIcon = weapon ? WeaponIcons.resolve(weapon, side) : null;

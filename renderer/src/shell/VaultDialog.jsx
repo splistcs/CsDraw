@@ -5,7 +5,6 @@ import { LibraryEvents } from '../shared/events/LibraryEvents.js';
 import { useFeedback } from '../shared/ui/FeedbackProvider.jsx';
 import { Modal } from '../shared/ui/Modal.jsx';
 
-/** Exportar/importar TUDO em um arquivo .csdraw criptografado com senha. */
 export function VaultDialog({ mode, onClose }) {
   const { notify, confirm } = useFeedback();
   const { t, errorMessage } = useI18n();

@@ -1,18 +1,8 @@
-/**
- * Cegueira deduzida da propriedade `flash_duration` do jogador (lida junto das posicoes), para demos em que o servidor
- * nao grava o evento `player_blind` (comum em demos de servidor de campeonato). A propriedade vale o tempo da flash a
- * partir do tick da detonacao e volta a 0 quando a cegueira acaba; o tempo total em que ela fica ligada passa um pouco
- * do valor (medido em demo real: ~1,35x), entao o fim e estimado e limitado pelo ultimo tick ligado e o primeiro zerado.
- */
 export class FlashBlinds {
   static TOTAL_FACTOR = 1.35;
   static MAX_SECONDS = 10;
   static MIN_FLASH = 0.05;
 
-  /**
-   * `samples`: Map<jogador, [{ tick, flash, alive }]>; `detonations`: eventos flashbang_detonate do round.
-   * Devolve [{ t, victim, attacker, duration }] no formato de `blinds` do round, ordenado por tempo.
-   */
   static derive({ samples, detonations = [], startTick, endTick, tickRate, secondsAt, playerIndex }) {
     const round2 = (value) => Math.round(value * 100) / 100;
     const blasts = detonations.filter((e) => Number.isFinite(e.tick)).sort((a, b) => a.tick - b.tick);
@@ -37,7 +27,7 @@ export class FlashBlinds {
         const from = previous ? previous.tick : sample.tick - 1;
         const blast = active ? [...blasts].reverse().find((e) => e.tick > from && e.tick <= sample.tick) : null;
         const onset = blast ? blast.tick : previous ? Math.round((previous.tick + sample.tick) / 2) : sample.tick;
-        if (open) close(active ? onset : sample.tick, active); // zerou/morreu, ou veio outra flash por cima (nasce onde ela detonou)
+        if (open) close(active ? onset : sample.tick, active);
         if (active) open = { onset, flash: sample.flash, lastOn: sample.tick, attacker: blast ? playerIndex(blast.user_steamid) : null };
         previous = sample;
       }

@@ -1,7 +1,3 @@
-/**
- * Atalhos globais. O handler recebe o KeyboardEvent e devolve true quando tratou a tecla
- * (a classe entao cancela o comportamento padrao). Ignora campos de texto e dialogos abertos.
- */
 export class Hotkeys {
   #handler;
   #allowRange;

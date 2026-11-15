@@ -12,11 +12,6 @@ import { LibrarySanitizer } from '../validation/Validators.js';
 import { LibraryStore } from '../vault/LibraryStore.js';
 import { ArchiveReader, ArchiveWriter } from './ArchiveFormat.js';
 
-/**
- * Exporta/importa TUDO que o usuario salvou em um unico arquivo .csdraw criptografado
- * (AES-256-GCM, chave derivada da senha com scrypt).
- * Cabecalho: "CSDX" | versao(1) | logN(1) | salt(16) | prefixo de nonce(8) = 30 bytes.
- */
 export class VaultTransferService {
   static MAGIC = Buffer.from('CSDX');
   static VERSION = 1;
@@ -56,10 +51,9 @@ export class VaultTransferService {
     return VaultTransferService.#counts(library);
   }
 
-  /** mode: 'merge' (junta com o que ja existe) ou 'replace' (substitui tudo). */
   async importFrom(filePath, passphrase, mode = 'merge') {
-    if (mode !== 'merge' && mode !== 'replace') throw new AppError('Modo de importação inválido.', 'INVALID');
-    if (typeof passphrase !== 'string' || !passphrase) throw new AppError('Informe a senha do arquivo.', 'INVALID');
+    if (mode !== 'merge' && mode !== 'replace') throw new AppError('Invalid import mode.', 'INVALID');
+    if (typeof passphrase !== 'string' || !passphrase) throw new AppError('Enter the file passphrase.', 'INVALID');
 
     const header = await VaultTransferService.#readHeader(filePath);
     const key = await PassphraseKdf.derive(passphrase, header.salt, header.logN);
@@ -80,10 +74,10 @@ export class VaultTransferService {
         }
       });
     } catch (error) {
-      if (error.code === 'DECRYPT_FAILED') throw new AppError('Senha incorreta ou arquivo corrompido.', 'BAD_PASSPHRASE');
+      if (error.code === 'DECRYPT_FAILED') throw new AppError('Wrong passphrase or corrupted file.', 'BAD_PASSPHRASE');
       throw error;
     }
-    if (!rawLibrary) throw new AppError('O arquivo não contém uma biblioteca.', 'CORRUPTED');
+    if (!rawLibrary) throw new AppError('The file does not contain a library.', 'CORRUPTED');
 
     const incoming = LibrarySanitizer.sanitize(rawLibrary);
     incoming.media = incoming.media.filter((item) => importedIds.has(item.id));
@@ -110,16 +104,15 @@ export class VaultTransferService {
       const buffer = Buffer.alloc(VaultTransferService.HEADER_SIZE);
       const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
       if (bytesRead < buffer.length || !buffer.subarray(0, 4).equals(VaultTransferService.MAGIC)) {
-        throw new AppError('Este não é um arquivo de cofre do CSDraw.', 'INVALID_FILE');
+        throw new AppError('This is not a CsDraw vault file.', 'INVALID_FILE');
       }
-      if (buffer[4] !== VaultTransferService.VERSION) throw new AppError('Versão do arquivo não suportada.', 'UNSUPPORTED');
+      if (buffer[4] !== VaultTransferService.VERSION) throw new AppError('Unsupported file version.', 'UNSUPPORTED');
       return { logN: buffer[5], salt: buffer.subarray(6, 22), noncePrefix: buffer.subarray(22, 30) };
     } finally {
       await handle.close();
     }
   }
 
-  /** Une por id; o registro de data mais recente vence (empate mantem o atual). */
   static #merge(current, incoming, dateField) {
     const byId = new Map(current.map((item) => [item.id, item]));
     for (const item of incoming) {

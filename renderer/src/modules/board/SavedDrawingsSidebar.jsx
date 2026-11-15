@@ -2,7 +2,6 @@ import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { MapCatalog } from '../../shared/constants/MapCatalog.js';
 import { SideDrawer } from '../../shared/ui/SideDrawer.jsx';
 
-/** Painel esquerdo deslizante com os desenhos salvos; a alca fica sempre visivel. */
 export function SavedDrawingsSidebar({ drawings, activeId, name, onNameChange, onSave, onNew, onOpen, onDelete, isSaving, isDirty, isOpen, onToggle }) {
   const { t } = useI18n();
   return (

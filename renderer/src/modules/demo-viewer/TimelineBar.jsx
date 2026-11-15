@@ -6,12 +6,8 @@ import { BombFuse } from './core/BombFuse.js';
 import { UtilityStyle } from './core/UtilityStyle.js';
 import { usePlaybackSnapshot } from './core/usePlaybackSnapshot.js';
 
-const ROUND_SECONDS = 115; // mp_roundtime padrao do competitivo (1:55)
+const ROUND_SECONDS = 115;
 
-/**
- * Tempo que falta, como no relogio do jogo: no freezetime, o que resta dele; no round, 1:55 menos o decorrido;
- * depois do plantio, o pavio da C4 (o relogio do jogo troca para ele).
- */
 function remainingSeconds(round, time) {
   if (time < round.freezeSeconds) return round.freezeSeconds - time;
   const bomb = BombFuse.at(round.bomb, time);
@@ -19,7 +15,6 @@ function remainingSeconds(round, time) {
   return Math.max(0, ROUND_SECONDS - (time - round.freezeSeconds));
 }
 
-/** Barra inferior: play/pause, velocidade, relogio e linha do tempo com fase da bomba, abates e utilidades arremessadas. */
 export function TimelineBar({ playback, round, players, includeFreeze }) {
   const { t } = useI18n();
   const { time, min, duration, playing, speed } = usePlaybackSnapshot(playback, 30);

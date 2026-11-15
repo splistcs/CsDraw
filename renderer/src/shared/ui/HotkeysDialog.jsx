@@ -1,7 +1,6 @@
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { Modal } from './Modal.jsx';
 
-/** Lista de atalhos: groups = [{ keys: ['Space'], title, text }]. */
 export function HotkeysDialog({ groups, onClose }) {
   const { t } = useI18n();
   return (

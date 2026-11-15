@@ -11,7 +11,6 @@ const components = {
   img: ({ node, src, alt }) => <EmbeddedContent src={src} alt={alt} />
 };
 
-/** Preview de Markdown (seguro: sem HTML cru) com suporte a desenhos/midias do cofre. */
 export function MarkdownView({ source, emptyMessage }) {
   const { t } = useI18n();
   return (

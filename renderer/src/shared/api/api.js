@@ -1,7 +1,5 @@
-/** Acesso unico a ponte do Electron (window.csdraw, definida no preload). */
 const CODE_PATTERN = /^\[\[([A-Z_]+)\]\]\s?/;
 
-/** Restaura `error.code` (enviado no prefixo da mensagem pelo preload). */
 export function decodeError(error) {
   const message = String(error?.message ?? '');
   const match = CODE_PATTERN.exec(message);
@@ -23,5 +21,4 @@ function wrap(node) {
 
 export const api = window.csdraw ? wrap(window.csdraw) : undefined;
 
-/** URL de uma midia do cofre, servida (e descriptografada) pelo protocolo csdraw-media. */
 export const mediaUrl = (id) => `csdraw-media://media/${id}`;

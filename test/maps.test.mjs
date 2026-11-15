@@ -36,7 +36,6 @@ test('icones dos mapas instalados (miniaturas) e slugs unicos no catalogo', () =
   assert.ok(MapCatalog.MAPS.every((map) => MapCatalog.GROUPS[map.group]));
 });
 
-/** Radar sintetico (512x512, celula de 2 px como no app) com corredores e salas assimetricos. */
 function syntheticMask() {
   const n = 512;
   const k = 4;
@@ -55,7 +54,6 @@ test('alinhamento pela imagem: recupera escala e deslocamento a partir de posico
       if (!mask.cells[cy * mask.size + cx] || (cx + cy) % 12 !== 0) continue;
       const px = cx * mask.cell + mask.cell / 2;
       const py = cy * mask.cell + mask.cell / 2;
-      // os jogadores nunca vao as pontas: o enquadramento puro erraria a escala
       if (px < 110 || px > 880 || py < 110 || py > 780) continue;
       points.push({ x: truth.x + px * truth.scale, y: truth.y - py * truth.scale, z: 0 });
     }

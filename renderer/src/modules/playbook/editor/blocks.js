@@ -1,11 +1,6 @@
 import { EmbedTokens } from '../../../shared/markdown/EmbedTokens.js';
 import { InlineMarkdown } from './inline.js';
 
-/**
- * Modelo de blocos do editor do playbook. O arquivo salvo continua sendo Markdown puro:
- * `Blocks.parse` le o Markdown em blocos e `Blocks.serialize` escreve de volta.
- */
-
 const LIST_TYPES = new Set(['bullet', 'number', 'todo']);
 const TEXT_TYPES = new Set(['text', 'h1', 'h2', 'h3', 'h4', 'bullet', 'number', 'todo', 'quote']);
 const VOID_TYPES = new Set(['divider', 'drawing', 'media', 'link', 'raw']);
@@ -53,11 +48,10 @@ export const Blocks = {
     return { id: newId(), type, text: '', indent: 0, checked: false, lang: '', ...props };
   },
 
-  /** Markdown -> lista de blocos (sempre devolve ao menos um bloco de texto vazio). */
   parse(markdown) {
     const lines = String(markdown ?? '').replace(/\r\n?/g, '\n').split('\n');
     const blocks = [];
-    let widths = []; // larguras de recuo das listas, para achar o nivel de cada item
+    let widths = [];
     const add = (type, props) => { blocks.push(Blocks.create(type, props)); };
     const levelFor = (rawIndent) => {
       const width = rawIndent.replace(/\t/g, '    ').length;
@@ -106,7 +100,7 @@ export const Blocks = {
       widths = [];
       const quote = /^\s{0,3}>\s?(.*)$/.exec(line);
       if (quote) {
-        if (!quote[1].trim() && blocks.at(-1)?.type === 'quote') continue; // `>` solto entre duas citacoes
+        if (!quote[1].trim() && blocks.at(-1)?.type === 'quote') continue;
         add('quote', { text: quote[1] });
         continue;
       }
@@ -127,7 +121,6 @@ export const Blocks = {
     return blocks;
   },
 
-  /** Blocos -> Markdown. Blocos de texto vazios nao sao gravados. */
   serialize(blocks) {
     const parts = [];
     let previous = null;
@@ -135,7 +128,7 @@ export const Blocks = {
       const md = toMarkdown(block);
       if (md === null) continue;
       if (previous) {
-        const family = (type) => (type === 'number' ? 'n' : 'b'); // marcadores e tarefas formam a mesma lista
+        const family = (type) => (type === 'number' ? 'n' : 'b');
         const bothList = Blocks.isList(previous.type) && Blocks.isList(block.type);
         const bothQuote = previous.type === 'quote' && block.type === 'quote';
         let separator = '\n\n';
@@ -149,7 +142,6 @@ export const Blocks = {
     return parts.length ? `${parts.join('')}\n` : '';
   },
 
-  /** Numero exibido de cada item de lista numerada (reinicia quando a sequencia e interrompida). */
   numbering(blocks) {
     const counters = [];
     return blocks.map((block) => {
@@ -165,7 +157,6 @@ export const Blocks = {
     });
   },
 
-  /** Indices do bloco e dos seguintes mais recuados (filhos de uma lista), que andam junto ao arrastar. */
   family(blocks, index) {
     const head = blocks[index];
     let end = index + 1;
@@ -175,7 +166,6 @@ export const Blocks = {
     return [index, end];
   },
 
-  /** Atalho de Markdown digitado no inicio do bloco ("# ", "- ", "1. ", "[] ", "> "). */
   shortcut(text) {
     const map = { '#': 'h1', '##': 'h2', '###': 'h3', '####': 'h4', '-': 'bullet', '*': 'bullet', '+': 'bullet', '1.': 'number', '[]': 'todo', '[ ]': 'todo', '>': 'quote', '"': 'quote' };
     if (text in map) return map[text];
@@ -189,7 +179,6 @@ export const Blocks = {
   }
 };
 
-/** Definicao do menu de blocos (ordem e secoes como no Notion). Os rotulos vem do i18n (`editor.block.<id>`). */
 export const BLOCK_MENU = [
   { id: 'text', section: 'basic', type: 'text', icon: 'T', hint: '' },
   { id: 'h1', section: 'basic', type: 'h1', icon: 'H1', hint: '#' },
@@ -207,5 +196,4 @@ export const BLOCK_MENU = [
   { id: 'link', section: 'media', type: 'link', icon: '🔗', hint: '' }
 ];
 
-/** Itens que podem virar o bloco atual (sem os que precisam de dados extras). */
 export const TURN_INTO = BLOCK_MENU.filter((item) => item.section === 'basic' && item.type !== 'divider');

@@ -53,20 +53,16 @@ test('blob: ida e volta, intervalos e adulteracao', async () => {
       assert.ok(Buffer.concat(parts).equals(data.subarray(5, size - 2)), `range ${size}`);
     }
   }
-  // bit flip
   const file = path.join(dir, 'blobs', 'b200000.blob');
   const raw = await fs.readFile(file);
   raw[100] ^= 1;
   await fs.writeFile(file, raw);
-  await assert.rejects(() => v.blobStore.getBuffer('b200000'), /descriptografar/);
-  // truncado
+  await assert.rejects(() => v.blobStore.getBuffer('b200000'), /Decryption failed/);
   await fs.writeFile(file, raw.subarray(0, raw.length - 70000));
   await assert.rejects(() => v.blobStore.getBuffer('b200000'));
-  // chave errada
   const other = new BlobStore({ directory: path.join(dir, 'blobs'), key: crypto.randomBytes(32) });
-  await assert.rejects(() => other.getBuffer('b1'), /descriptografar/);
-  // id malicioso
-  await assert.rejects(() => v.blobStore.getBuffer('../x'), /inválido/);
+  await assert.rejects(() => other.getBuffer('b1'), /Decryption failed/);
+  await assert.rejects(() => v.blobStore.getBuffer('../x'), /Invalid/);
 });
 
 test('biblioteca persiste criptografada e recarrega', async () => {
@@ -77,23 +73,22 @@ test('biblioteca persiste criptografada e recarrega', async () => {
   const onDisk = await fs.readFile(path.join(dir, 'blobs', 'library.blob'));
   assert.ok(!onDisk.includes(Buffer.from('Smoke A')), 'nada em texto claro');
 
-  const v2 = await createVault(dir); // mesma chave (vault.key)
+  const v2 = await createVault(dir);
   const loaded = v2.drawings.get(saved.id);
   assert.equal(loaded.name, 'Smoke A');
-  // editar de novo
   const edited = await v2.drawings.save({ ...loaded, name: 'Smoke B', strokes: [] });
   assert.equal(edited.id, saved.id);
   assert.equal(v2.drawings.list().length, 1);
   assert.equal(v2.drawings.get(saved.id).name, 'Smoke B');
-  await assert.rejects(() => v2.drawings.save({ ...loaded, id: 'nao-existe' }), /não encontrado/);
-  await assert.rejects(async () => v2.drawings.save({ ...loaded, stickers: [{ type: 'nuke', x: 1, y: 1 }] }), /Adesivo/);
+  await assert.rejects(() => v2.drawings.save({ ...loaded, id: 'nao-existe' }), /not found/i);
+  await assert.rejects(async () => v2.drawings.save({ ...loaded, stickers: [{ type: 'nuke', x: 1, y: 1 }] }), /sticker/i);
 });
 
 test('midia: pastas, import, mover, adesivos e limpeza de orfaos', async () => {
   const dir = await tmp();
   const v = await createVault(dir);
   const folder = await v.mediaService.createFolder({ name: 'Mirage' });
-  await assert.rejects(() => v.mediaService.createFolder({ name: 'mirage' }), /Já existe/);
+  await assert.rejects(() => v.mediaService.createFolder({ name: 'mirage' }), /already exists/);
   const sub = await v.mediaService.createFolder({ name: 'Smokes', parentId: folder.id });
   const videoPath = path.join(dir, 'clip.mp4');
   const videoBytes = crypto.randomBytes(300000);
@@ -105,7 +100,7 @@ test('midia: pastas, import, mover, adesivos e limpeza de orfaos', async () => {
 
   const png = await v.mediaService.addBuffer({ name: 'a.png', data: new Uint8Array([1, 2, 3]), origin: 'sticker' });
   assert.equal(v.mediaService.tree().items.length, 1, 'anexo de adesivo fica oculto');
-  await assert.rejects(() => v.mediaService.addBuffer({ name: 'v.mp4', data: new Uint8Array([1]), origin: 'sticker' }), /imagens/);
+  await assert.rejects(() => v.mediaService.addBuffer({ name: 'v.mp4', data: new Uint8Array([1]), origin: 'sticker' }), /images/i);
 
   const d = await v.drawings.save({ name: 'D', mapSlug: 'nuke', notes: '', thumbnail: '', strokes: [], stickers: [{ type: 'he', x: 1, y: 2, images: [{ mediaId: png.id, caption: 'legenda' }, { mediaId: 'fantasma', caption: '' }] }] });
   assert.equal(d.stickers[0].images.length, 1, 'referencia inexistente descartada');
@@ -128,7 +123,7 @@ test('biblioteca de demos: demo analisada com formato antigo e reanalisada no me
   const { entry } = await v.demoLibrary.import(demoFile);
   assert.equal(entry.analysisVersion, DemoAnalyzer.VERSION);
   await v.demoLibrary.setTags({ id: entry.id, tags: ['scrim'] });
-  await v.demoRepository.update(entry.id, { analysisVersion: undefined }); // como as demos salvas antes da versao 2
+  await v.demoRepository.update(entry.id, { analysisVersion: undefined });
 
   const again = await v.demoLibrary.import(demoFile);
   assert.deepEqual([again.duplicate, again.upgraded], [false, true]);
@@ -165,7 +160,7 @@ test('biblioteca de demos: importar, reabrir, tags, duplicata e remover', async 
   const tagged = await v.demoLibrary.setTags({ id: entry.id, tags: ['scrim', 'scrim', 'anti-eco'] });
   assert.deepEqual(tagged.tags, ['scrim', 'anti-eco']);
   assert.equal(v.demoLibrary.list()[0].name, 'Final do campeonato');
-  await assert.rejects(() => v.demoLibrary.import('/nao/existe.dem'), /não encontrado/);
+  await assert.rejects(() => v.demoLibrary.import('/nao/existe.dem'), /not found/i);
 
   await v.mediaService.collectOrphans();
   assert.ok(await v.blobStore.exists(`demo-${entry.id}`), 'blob de demo nao e tratado como orfao');
@@ -187,7 +182,7 @@ test('tracados novos (formas, texto, marca-texto) sao validados e salvos', async
   ] });
   assert.deepEqual(saved.strokes.map((s) => s.kind), ['highlighter', 'arrow', 'rect', 'ellipse', 'text', 'pen']);
   assert.equal(saved.strokes[4].text, 'Smoke aqui');
-  const bad = (stroke) => assert.rejects(async () => v.drawings.save({ ...base, strokes: [stroke] }), /inválido|Texto/);
+  const bad = (stroke) => assert.rejects(async () => v.drawings.save({ ...base, strokes: [stroke] }), /Invalid|Text/);
   await bad({ kind: 'arrow', color: '#ffffff', width: 4, points: [[0, 0]] });
   await bad({ kind: 'text', color: '#ffffff', width: 4, points: [[0, 0]], text: '' });
   await bad({ kind: 'laser', color: '#ffffff', width: 4, points: [[0, 0], [1, 1]] });
@@ -213,10 +208,10 @@ test('exportar e importar: tudo volta, senha errada e adulteracao', async () => 
   assert.deepEqual(counts, { drawings: 1, playbooks: 1, folders: 1, media: 1, demos: 1 });
   const fileBytes = await fs.readFile(out);
   assert.ok(!fileBytes.includes(Buffer.from('Desenho')) && !fileBytes.includes(bytes.subarray(0, 32)), 'nada em claro');
-  await assert.rejects(() => a.transfer.exportTo(out + '2', 'curta'), /pelo menos/);
+  await assert.rejects(() => a.transfer.exportTo(out + '2', 'curta'), /at least/);
 
   const b = await createVault(await tmp());
-  await assert.rejects(() => b.transfer.importFrom(out, 'senha-errada-999'), /Senha incorreta/);
+  await assert.rejects(() => b.transfer.importFrom(out, 'senha-errada-999'), /Wrong passphrase/);
   const result = await b.transfer.importFrom(out, 'senha-forte-123', 'merge');
   assert.deepEqual(result, { drawings: 1, playbooks: 1, folders: 1, media: 1, demos: 1 });
   assert.equal(b.demoLibrary.list().length, 1);
@@ -226,24 +221,21 @@ test('exportar e importar: tudo volta, senha errada e adulteracao', async () => 
   assert.ok((await b.blobStore.getBuffer(added[0].id)).equals(bytes));
   assert.ok(await b.blobStore.exists(sticker.id));
 
-  // importar de novo (merge) nao duplica
   await b.transfer.importFrom(out, 'senha-forte-123', 'merge');
   assert.equal(b.drawings.list().length, 1);
 
-  // replace apaga o que nao estava no arquivo
   await b.drawings.save({ name: 'Extra', mapSlug: 'nuke', notes: '', thumbnail: '', strokes: [], stickers: [] });
   assert.equal(b.drawings.list().length, 2);
   await b.transfer.importFrom(out, 'senha-forte-123', 'replace');
   assert.equal(b.drawings.list().length, 1);
 
-  // arquivo adulterado e arquivo qualquer
   const tampered = Buffer.from(fileBytes);
   tampered[tampered.length - 20] ^= 1;
   const tamperedPath = out + '.bad';
   await fs.writeFile(tamperedPath, tampered);
-  await assert.rejects(() => b.transfer.importFrom(tamperedPath, 'senha-forte-123'), /Senha incorreta ou arquivo corrompido/);
+  await assert.rejects(() => b.transfer.importFrom(tamperedPath, 'senha-forte-123'), /Wrong passphrase or corrupted file/);
   await fs.writeFile(tamperedPath, 'qualquer coisa que nao e um cofre, com mais de trinta bytes!!');
-  await assert.rejects(() => b.transfer.importFrom(tamperedPath, 'x'), /não é um arquivo de cofre/);
+  await assert.rejects(() => b.transfer.importFrom(tamperedPath, 'x'), /not a CsDraw vault file/);
 });
 
 test('biblioteca de demos: demo lida por outra versao do leitor (demoparser2) e reanalisada; a versao fica gravada mesmo apos recarregar', async () => {
@@ -265,13 +257,11 @@ test('biblioteca de demos: demo lida por outra versao do leitor (demoparser2) e 
   assert.equal(upgraded.entry.parserVersion, '0.42.3');
   assert.equal(v.demoLibrary.list().length, 1);
 
-  // o campo sobrevive ao salvar e recarregar o cofre (o validador do repositorio o preservaria?)
   const reloaded = new LibraryStore(v.blobStore);
   await reloaded.load();
   assert.equal(new DemoRepository(reloaded).all()[0].parserVersion, '0.42.3');
   assert.equal((await library('0.42.3').import(demoFile)).duplicate, true);
 
-  // demo antiga, sem versao do leitor gravada: vale como "outro leitor"
   await v.demoRepository.update(first.entry.id, { parserVersion: undefined });
   assert.equal((await library('0.42.3').import(demoFile)).upgraded, true);
 });

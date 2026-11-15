@@ -3,7 +3,6 @@ import { CanvasHost } from '../../shared/drawing/CanvasHost.js';
 import { IconLibrary } from './core/IconLibrary.js';
 import { RadarRenderer } from './core/RadarRenderer.js';
 
-/** Radar 2D: redesenha direto a cada tick do playback e a cada mudanca de pan/zoom (sem passar pelo React). */
 export function RadarCanvas({ viewport, layout, images, projection, demo, round, playback, showNames, labels, options }) {
   const canvasRef = useRef(null);
 
@@ -17,7 +16,6 @@ export function RadarCanvas({ viewport, layout, images, projection, demo, round,
   drawRef.current = draw;
 
   useEffect(() => {
-    // O canvas de anotacoes (por cima) controla o tamanho do viewport; aqui so ajustamos o proprio canvas.
     const host = new CanvasHost(canvasRef.current, viewport, () => drawRef.current(), { driveViewport: false });
     return () => host.dispose();
   }, [viewport]);
@@ -26,7 +24,7 @@ export function RadarCanvas({ viewport, layout, images, projection, demo, round,
     draw();
     const stopPlayback = playback.subscribe(draw);
     const stopViewport = viewport.subscribe(draw);
-    const stopIcons = IconLibrary.subscribe(draw); // PNG que termina de carregar com o replay pausado
+    const stopIcons = IconLibrary.subscribe(draw);
     return () => { stopPlayback(); stopViewport(); stopIcons(); };
   }, [draw, playback, viewport]);
 

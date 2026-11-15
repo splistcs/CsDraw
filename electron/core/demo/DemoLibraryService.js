@@ -10,10 +10,6 @@ import { ParserVersion } from './ParserVersion.js';
 const gzip = promisify(zlib.gzip);
 const gunzip = promisify(zlib.gunzip);
 
-/**
- * Biblioteca de demos: guarda o resultado da analise (JSON comprimido) no cofre criptografado,
- * para reabrir uma demo instantaneamente sem reanalisar o .dem original.
- */
 export class DemoLibraryService {
   static BLOB_PREFIX = 'demo-';
   #repository;
@@ -21,7 +17,6 @@ export class DemoLibraryService {
   #analysis;
   #parserVersion;
 
-  /** `parserVersion`: versao do leitor de demos instalado (null se desconhecida: ai so a versao da analise decide). */
   constructor({ demoRepository, blobStore, analysisService, parserVersion = ParserVersion.read() }) {
     this.#repository = demoRepository;
     this.#blobStore = blobStore;
@@ -29,10 +24,6 @@ export class DemoLibraryService {
     this.#parserVersion = parserVersion || null;
   }
 
-  /**
-   * A analise guardada vale? So se tem o formato atual E foi feita pelo mesmo leitor de demos que esta instalado: outra
-   * versao do leitor pode entregar dados que a anterior nao tinha (ou ler demos que ela nao lia).
-   */
   #isCurrent(entry) {
     if ((entry.analysisVersion ?? 1) < DemoAnalyzer.VERSION) return false;
     return !this.#parserVersion || entry.parserVersion === this.#parserVersion;
@@ -40,13 +31,9 @@ export class DemoLibraryService {
 
   list() { return this.#repository.list(); }
 
-  /**
-   * Importa uma demo. Se ela ja esta na biblioteca com o formato atual e lida pelo mesmo leitor de demos, devolve `duplicate`;
-   * se foi analisada com uma versao antiga da analise ou de outro leitor, reanalisa e atualiza no mesmo registro.
-   */
   async import(filePath, onProgress = () => {}) {
     const stat = typeof filePath === 'string' ? await fs.stat(filePath).catch(() => null) : null;
-    if (!stat?.isFile()) throw new AppError('Arquivo não encontrado.', 'NOT_FOUND');
+    if (!stat?.isFile()) throw new AppError('File not found.', 'NOT_FOUND');
     const fileName = path.basename(filePath);
     const fingerprint = `${fileName}|${stat.size}|${Math.round(stat.mtimeMs)}`;
     const existing = this.#repository.findByFingerprint(fingerprint);
@@ -86,7 +73,6 @@ export class DemoLibraryService {
     return gzip(Buffer.from(JSON.stringify(result), 'utf8'));
   }
 
-  /** Campos do registro que dependem do resultado da analise. */
   static #summary(result) {
     const last = result.rounds[result.rounds.length - 1];
     return {
@@ -102,17 +88,17 @@ export class DemoLibraryService {
 
   async open(id) {
     const safeId = Validate.id(id);
-    if (!this.#repository.find(safeId)) throw new AppError('Demo não encontrada.', 'NOT_FOUND');
+    if (!this.#repository.find(safeId)) throw new AppError('Demo not found.', 'NOT_FOUND');
     const packed = await this.#blobStore.getBuffer(`${DemoLibraryService.BLOB_PREFIX}${safeId}`);
     return JSON.parse((await gunzip(packed)).toString('utf8'));
   }
 
   rename({ id, name }) {
-    return this.#repository.update(Validate.id(id), { name: Validate.text(name, { min: 1, max: 120, label: 'Nome' }) });
+    return this.#repository.update(Validate.id(id), { name: Validate.text(name, { min: 1, max: 120, label: 'Name' }) });
   }
 
   setTags({ id, tags }) {
-    if (!Array.isArray(tags) || tags.length > 20) throw new AppError('Tags inválidas.', 'INVALID');
+    if (!Array.isArray(tags) || tags.length > 20) throw new AppError('Invalid tags.', 'INVALID');
     const clean = [...new Set(tags.map((tag) => Validate.text(tag, { min: 1, max: 30, label: 'Tag' })))];
     return this.#repository.update(Validate.id(id), { tags: clean });
   }

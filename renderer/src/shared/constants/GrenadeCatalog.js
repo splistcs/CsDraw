@@ -1,4 +1,3 @@
-/** As seis granadas do CS2. Icones do QUADRO em public/grenades-board/<type>.png (com emoji de reserva); o demo viewer usa public/grenades/. */
 export class GrenadeCatalog {
   static GRENADES = [
     { type: 'he', label: 'HE', emoji: '💥', color: '#d6453d' },

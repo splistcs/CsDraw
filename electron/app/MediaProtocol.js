@@ -1,9 +1,5 @@
 import { Readable } from 'node:stream';
 
-/**
- * Protocolo csdraw-media://media/<id>: serve midias do cofre descriptografando sob demanda,
- * com suporte a Range (permite avancar/retroceder em videos).
- */
 export class MediaProtocol {
   static SCHEME = 'csdraw-media';
 
@@ -19,7 +15,7 @@ export class MediaProtocol {
       try {
         const id = decodeURIComponent(new URL(request.url).pathname.slice(1));
         const item = /^[A-Za-z0-9_-]{1,64}$/.test(id) ? mediaRepository.findItem(id) : null;
-        if (!item) return new Response('Não encontrado', { status: 404 });
+        if (!item) return new Response('Not found', { status: 404 });
 
         const size = await blobStore.plainSize(id);
         const headers = { 'Content-Type': item.mime, 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=3600' };
@@ -46,7 +42,7 @@ export class MediaProtocol {
         return new Response(Readable.toWeb(blobStore.rangeStream(id, start, end)), { status, headers });
       } catch (error) {
         console.error('[csdraw-media]', error);
-        return new Response('Erro ao ler a mídia', { status: 500 });
+        return new Response('Failed to read media', { status: 500 });
       }
     });
   }

@@ -1,9 +1,9 @@
 {
   "name": "csdraw-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
-  "description": "CSDraw - quadro tático, playbooks, mídia e demo viewer para Counter-Strike 2",
-  "author": "CSDraw",
+  "description": "CsDraw - tactical board, playbooks, media library and 2D demo viewer for Counter-Strike 2",
+  "author": "splistcs",
   "main": "electron/main.js",
   "type": "module",
   "engines": {
@@ -46,19 +46,23 @@
     "files": [
       "electron/**",
       "dist/**",
+      "build/icon.png",
       "package.json"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
     },
     "mac": {
       "target": [
         "dmg",
         "zip"
-      ]
+      ],
+      "icon": "build/icon.png"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "build/icon.png"
     },
     "publish": [
       {

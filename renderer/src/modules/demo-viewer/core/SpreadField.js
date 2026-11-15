@@ -1,17 +1,9 @@
 import { WalkMask } from './WalkMask.js';
 
 const NEIGHBORS = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, Math.SQRT2], [1, -1, Math.SQRT2], [-1, 1, Math.SQRT2], [-1, -1, Math.SQRT2]];
-const FIND_FLOOR_CELLS = 4; // a granada pode parar em cima de uma caixa ou na borda: procura chao por perto
+const FIND_FLOOR_CELLS = 4;
 
-/**
- * Espalhamento da smoke e do fogo: celulas alcancadas a partir do ponto da explosao, andando so pelo chao do radar
- * (distancia pelo caminho, nao em linha reta), e os buracos que uma HE abre na smoke. Funcoes puras.
- */
 export class SpreadField {
-  /**
-   * `cells`: `[{ x, y, d }]` com o centro de cada celula em pixels do radar do andar e `d` de 0 (centro) a 1 (borda),
-   * ordenadas por `d`. Sem mascara (ou sem chao no ponto), preenche o circulo inteiro.
-   */
   static compute(mask, px, py, radius) {
     if (!mask) return SpreadField.#disk(px, py, radius, WalkMask.CELL);
     const step = mask.cell;
@@ -40,17 +32,12 @@ export class SpreadField {
     return cells.sort((a, b) => a.d - b.d);
   }
 
-  /**
-   * Buracos que HEs abrem numa smoke: uma HE que explode enquanto a smoke esta ativa e perto dela. O buraco abre
-   * rapido e fecha aos poucos. Devolve `[{ t, x, y }]` (tempo e posicao em unidades do jogo).
-   */
   static holes(smoke, grenades, { life, smokeUnits, holeUnits }) {
     return (grenades ?? [])
       .filter((g) => g.type === 'he' && g.t >= smoke.t && g.t <= smoke.t + life && Math.hypot(g.x - smoke.x, g.y - smoke.y) <= smokeUnits + holeUnits * 0.6)
       .map((g) => ({ t: g.t, x: g.x, y: g.y }));
   }
 
-  /** Raio do buraco (0 a 1 do maximo) `age` segundos depois da HE: abre em `open` s e fecha em `close` s. */
   static holeSize(age, { open = 0.2, close = 4.5 } = {}) {
     if (age < 0 || age > open + close) return 0;
     if (age < open) return age / open;

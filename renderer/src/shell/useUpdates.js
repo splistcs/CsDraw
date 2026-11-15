@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../shared/api/api.js';
 
-/** Estado da atualizacao automatica (empurrado pelo processo principal). */
 export function useUpdates() {
   const [state, setState] = useState(null);
   useEffect(() => {

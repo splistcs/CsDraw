@@ -1,7 +1,3 @@
-/**
- * Layout de um mapa no "mundo" do quadro: mapas de um andar ocupam 1024x1024; mapas de dois andares
- * (Nuke, Vertigo) colocam os dois radares lado a lado, como no Skybox.
- */
 export class MapLayout {
   static LEVEL_SIZE = 1024;
   static GAP = 64;

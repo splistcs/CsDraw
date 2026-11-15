@@ -30,7 +30,6 @@
 .picker-crumbs button.active { color: var(--text); font-weight: 700; }
 .picker-item .thumb-placeholder.folder { display: grid; place-items: center; font-size: 2.4rem; }
 
-/* ---------- editor de blocos (estilo Notion) ---------- */
 .block-editor { position: relative; outline: none; }
 .be-row { position: relative; display: flex; align-items: flex-start; margin-left: -52px; padding-left: 52px; }
 .be-row::before { content: ''; position: absolute; left: 0; right: 0; height: 3px; border-radius: 2px; background: var(--accent); opacity: 0; pointer-events: none; }

@@ -13,9 +13,6 @@ const DRAG_MIME = 'application/x-csdraw-block';
 const BULLETS = ['•', '◦', '▪', '•'];
 const isEmptyText = (block) => block.type === 'text' && !block.text;
 
-/* ------------------------------------------------------------------ texto editavel */
-
-/** Div contentEditable "nao controlada": o DOM so e reescrito quando o valor muda por fora (desfazer, dividir, mesclar). */
 function EditableText({ value, className, placeholder, onInput, onKeyDown, onPaste, onFocus }) {
   const ref = useRef(null);
   const last = useRef(null);
@@ -50,8 +47,6 @@ function EditableText({ value, className, placeholder, onInput, onKeyDown, onPas
     />
   );
 }
-
-/* ------------------------------------------------------------------ bloco */
 
 const BlockRow = memo(function BlockRow({ block, number, drop, ed }) {
   const { t } = useI18n();
@@ -164,8 +159,6 @@ function RawBlock({ block, ed, voidKeys }) {
   );
 }
 
-/* ------------------------------------------------------------------ editor */
-
 export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }, forwardedRef) {
   const { t } = useI18n();
   const { askText } = useFeedback();
@@ -178,19 +171,18 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
   const pendingFocus = useRef(null);
   const lastFocusedId = useRef(null);
   const dragId = useRef(null);
-  const [menu, setMenu] = useState(null); // { kind: 'slash' | 'plus' | 'grip', id, anchor, query }
-  const [drop, setDrop] = useState(null); // { id, side: 'before' | 'after' }
-  const [picker, setPicker] = useState(null); // { tab, afterId }
-  const [format, setFormat] = useState(null); // barra de formatacao sobre a selecao
+  const [menu, setMenu] = useState(null);
+  const [drop, setDrop] = useState(null);
+  const [picker, setPicker] = useState(null);
+  const [format, setFormat] = useState(null);
   const menuRef = useRef(null);
-  const dismissed = useRef(null); // bloco cujo menu "/" foi fechado com Esc (nao reabre ate apagar a barra)
+  const dismissed = useRef(null);
   const askTextRef = useRef(askText);
   askTextRef.current = askText;
   menuRef.current = menu;
   const tRef = useRef(t);
   tRef.current = t;
 
-  /* ---------- historico (desfazer/refazer) */
   const history = useRef({ stack: [JSON.stringify(blocks)], index: 0, key: null, time: 0 });
   const record = (next, key) => {
     const h = history.current;
@@ -234,7 +226,6 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
     apply(restored, { track: false, focus: { id: focusId, pos: 'end' } });
   };
 
-  /* ---------- foco */
   const rowOf = (id) => rootRef.current?.querySelector(`[data-block="${id}"]`);
   const focusBlock = (id, pos = 'end') => {
     const row = rowOf(id);
@@ -252,7 +243,6 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
     focusBlock(target.id, target.pos);
   });
 
-  /* ---------- operacoes sobre blocos */
   const indexOf = (id) => blocksRef.current.findIndex((b) => b.id === id);
   const patch = useCallback((id, changes, key = null, focus = null) => {
     apply(blocksRef.current.map((b) => (b.id === id ? { ...b, ...changes } : b)), { key, focus });
@@ -265,7 +255,6 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
     apply(list, { focus: focus === undefined ? { id: newBlocks.at(-1).id, pos: 'start' } : focus });
   };
 
-  /** Poe um bloco sem texto (divisor, desenho, midia, link) e leva o cursor a um paragrafo vazio logo abaixo. */
   const putVoid = (afterId, voidBlock, replace = false) => {
     const list = blocksRef.current;
     const at = list.findIndex((b) => b.id === afterId);
@@ -332,7 +321,6 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
     patch(id, changes, null, { id, pos: 'end' });
   };
 
-  /* ---------- itens do menu de blocos */
   const sectionsFor = (kind) => {
     const label = (item) => t(`editor.block.${item.id}`);
     if (kind === 'grip') {
@@ -349,14 +337,14 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
       { key: 'media', title: t('editor.menu.media'), items: BLOCK_MENU.filter((i) => i.section === 'media').map((item) => ({ ...item, label: label(item) })) }
     ];
   };
-  const menuSections = useMemo(() => (menu ? sectionsFor(menu.kind) : []), [menu?.kind, t]); // eslint-disable-line react-hooks/exhaustive-deps
+  const menuSections = useMemo(() => (menu ? sectionsFor(menu.kind) : []), [menu?.kind, t]);
 
   const closeMenu = useCallback(() => {
     if (menuRef.current?.kind === 'slash') dismissed.current = menuRef.current.id;
     setMenu(null);
     const id = lastFocusedId.current;
     if (id && document.activeElement === document.body) focusBlock(id);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const pickMenuItem = async (item) => {
     const current = menuRef.current;
@@ -373,7 +361,6 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
       return;
     }
 
-    // remove o "/consulta" digitado (ou o texto do bloco, no modo "+")
     let text = block.text;
     const el = rowOf(id)?.querySelector('[data-editable]');
     if (el?.isContentEditable) {
@@ -401,7 +388,6 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
       else focusBlock(id);
       return;
     }
-    // blocos de texto/lista/codigo
     if (empty) {
       patch(id, { type: item.type, text: '', indent: Blocks.isList(item.type) ? block.indent : 0, checked: false }, null, { id, pos: 'start' });
     } else {
@@ -429,7 +415,6 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
     setMenu({ kind: 'grip', id, anchor: { left: rect.left, top: rect.top, bottom: rect.bottom }, query: '' });
   };
 
-  /* ---------- digitacao */
   const detectSlash = (id, el) => {
     const before = Caret.textBefore(el);
     const match = /(?:^|\s)\/([^\n]*)$/.exec(before);
@@ -448,7 +433,6 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
   const input = useCallback((id, md, el) => {
     const block = blocksRef.current.find((b) => b.id === id);
     if (!block) return;
-    // atalhos de Markdown no inicio: "# ", "- ", "1. ", "[] ", "> "
     const plain = el.textContent.replace(/​/g, '');
     if (block.type === 'text' && /^(```|---)$/.test(plain.trim()) && Caret.atEnd(el)) {
       el.innerHTML = '';
@@ -459,14 +443,13 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
     patch(id, { text: md }, `t:${id}`);
     detectSlash(id, el);
     updateFormat();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleTodo = useCallback((id) => {
     const block = blocksRef.current.find((b) => b.id === id);
     if (block) patch(id, { checked: !block.checked });
   }, [patch]);
 
-  /* ---------- teclado dos blocos de texto */
   const keyDown = useCallback((event, id) => {
     if (event.nativeEvent.isComposing) return;
     const list = blocksRef.current;
@@ -501,7 +484,6 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
       const continues = isList || block.type === 'quote';
       const indent = isList ? block.indent : 0;
       if (before === '' && after !== '') {
-        // Enter no comeco de um bloco com texto: abre um paragrafo vazio acima e o cursor fica no bloco
         const above = Blocks.create(continues ? block.type : 'text', { indent });
         const updated = list.map((b) => (b.id === id ? { ...b, text: after } : b));
         updated.splice(at, 0, above);
@@ -561,7 +543,7 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
     if (key === 'ArrowDown' && !event.shiftKey && Caret.onEdgeLine(el, 'bottom') && next) { event.preventDefault(); focusBlock(next.id, 'start'); return; }
     if (key === 'ArrowLeft' && !event.shiftKey && Caret.atStart(el) && prev) { event.preventDefault(); focusBlock(prev.id, 'end'); return; }
     if (key === 'ArrowRight' && !event.shiftKey && Caret.atEnd(el) && next) { event.preventDefault(); focusBlock(next.id, 'start'); }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const codeKeyDown = useCallback((event, id) => {
     const list = blocksRef.current;
@@ -590,7 +572,7 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
       if (following) focusBlock(following.id, 'start');
       else insertAfter(id, [Blocks.create('text')], {});
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const voidKeyDown = useCallback((event, id) => {
     if (event.target !== event.currentTarget) return;
@@ -604,9 +586,8 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
     else if (event.key === 'Enter') { event.preventDefault(); insertAfter(id, [Blocks.create('text')], {}); }
     else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') { event.preventDefault(); if (list[at - 1]) focusBlock(list[at - 1].id, 'end'); }
     else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') { event.preventDefault(); if (list[at + 1]) focusBlock(list[at + 1].id, 'start'); }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  /* ---------- colar */
   const paste = useCallback((event, id) => {
     const text = event.clipboardData.getData('text/plain');
     if (!text) return;
@@ -634,9 +615,8 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
       }
     }
     document.execCommand('insertText', false, trimmed.replace(/\s*\n\s*/g, ' '));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  /* ---------- formatacao inline */
   function toggleCode() {
     const selection = window.getSelection();
     if (!selection?.rangeCount || selection.isCollapsed) return;
@@ -693,9 +673,8 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
     const onSelection = () => updateFormat();
     document.addEventListener('selectionchange', onSelection);
     return () => document.removeEventListener('selectionchange', onSelection);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  /* ---------- arrastar e soltar */
   const dragStart = useCallback((event, id) => {
     dragId.current = id;
     event.dataTransfer.setData(DRAG_MIME, id);
@@ -722,7 +701,7 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
     dragId.current = null;
     setDrop(null);
     if (moving !== id) moveChunk(moving, id, side);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const linkToText = useCallback((id) => {
     const block = blocksRef.current.find((b) => b.id === id);
@@ -734,9 +713,8 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
   const ed = useMemo(() => ({
     input, keyDown, codeKeyDown, voidKeyDown, paste, patch, toggleTodo, focused, linkToText,
     openPlus, openGrip, dragStart, dragEnd, dragOver, dropOn
-  }), []); // eslint-disable-line react-hooks/exhaustive-deps
+  }), []);
 
-  /* ---------- API para o pai (botao "Inserir desenho / midia") */
   useImperativeHandle(forwardedRef, () => ({
     openPicker() {
       const list = blocksRef.current;
@@ -744,7 +722,7 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
       setPicker({ tab: 'drawings', afterId, replaceEmpty: isEmptyText(list.find((b) => b.id === afterId)) });
     },
     focus() { const first = blocksRef.current[0]; if (first) focusBlock(first.id, 'end'); }
-  }), []); // eslint-disable-line react-hooks/exhaustive-deps
+  }), []);
 
   const onPicked = (token) => {
     const current = picker;
@@ -806,9 +784,6 @@ export const BlockEditor = forwardRef(function BlockEditor({ initial, onChange }
   );
 });
 
-/* ------------------------------------------------------------------ auxiliares */
-
-/** Garante um bloco de texto no fim (para poder escrever depois de um desenho, divisor ou link). */
 function withTail(list) {
   const last = list.at(-1);
   if (!last || Blocks.isVoid(last.type) || last.type === 'code') return [...list, Blocks.create('text')];
@@ -817,7 +792,6 @@ function withTail(list) {
 
 const isEmptyBlock = (block, before, after) => !before.trim() && !after.trim() && !block.text.trim();
 
-/** Apaga "/consulta" logo antes do cursor. */
 function removeSlashQuery(el, query) {
   const selection = window.getSelection();
   const node = selection?.anchorNode;

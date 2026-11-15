@@ -1,7 +1,3 @@
-/**
- * Preco de cada arma (CS2) pelo nome de classe sem "weapon_" (o mesmo de WeaponNames e dos PNG em public/weapons).
- * O alcance do cone de visao de cada jogador no radar cresce com o preco da arma que ele segura.
- */
 export class WeaponPrices {
   static TABLE = {
     knife: 0, c4: 0, taser: 200,
@@ -15,16 +11,14 @@ export class WeaponPrices {
   };
   static MAX = 5200;
 
-  /** Preco da arma, ou null se o nome nao e conhecido. */
   static price(name) {
     const key = String(name ?? '').toLowerCase().replace(/^weapon_/, '');
     return Object.hasOwn(WeaponPrices.TABLE, key) ? WeaponPrices.TABLE[key] : null;
   }
 
-  /** Alcance do cone de visao em unidades do mundo do radar: de `min` (faca, granada, desconhecida) a `max` (a arma mais cara). */
   static viewLength(name, { min = 26, max = 80 } = {}) {
     const price = WeaponPrices.price(name) ?? 0;
-    const share = Math.min(1, Math.max(0, price / WeaponPrices.MAX)) ** 0.65; // curva suave: as armas baratas ja se distinguem das caras
+    const share = Math.min(1, Math.max(0, price / WeaponPrices.MAX)) ** 0.65;
     return min + (max - min) * share;
   }
 }

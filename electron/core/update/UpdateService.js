@@ -13,17 +13,12 @@ export const UpdateStatus = Object.freeze({
 const FOUR_HOURS = 4 * 60 * 60 * 1000;
 const BUSY = new Set([UpdateStatus.CHECKING, UpdateStatus.DOWNLOADING, UpdateStatus.READY]);
 
-/** Primeira linha do erro, curta: as mensagens do updater podem trazer cabecalhos HTTP ou HTML inteiros. */
 export function shortError(error) {
   const first = String(error?.message ?? error ?? '').split('\n')[0].trim();
   if (!first) return 'unknown';
   return first.length > 200 ? `${first.slice(0, 197)}…` : first;
 }
 
-/**
- * Pagina de releases a partir de `build.publish` do package.json (objeto ou lista).
- * Devolve null se nao for GitHub, se faltar dono/repositorio ou se ainda for o valor de exemplo (SEU-USUARIO).
- */
 export function releasesUrlFrom(publish) {
   const entry = (Array.isArray(publish) ? publish : [publish]).find((item) => item?.provider === 'github');
   const valid = (value) => typeof value === 'string' && /^[\w.-]+$/.test(value);
@@ -31,11 +26,6 @@ export function releasesUrlFrom(publish) {
   return `https://github.com/${entry.owner}/${entry.repo}/releases/latest`;
 }
 
-/**
- * Atualizacao automatica via GitHub Releases. Recebe o `autoUpdater` do electron-updater (ou um falso nos testes):
- * verifica ao abrir e a cada poucas horas, baixa em segundo plano e instala ao fechar o app ou quando o usuario pede.
- * Sem `updater` (app nao empacotado, sem repositorio configurado...) fica DISABLED e nunca toca na rede.
- */
 export class UpdateService {
   #updater;
   #state;
@@ -69,7 +59,6 @@ export class UpdateService {
     return () => this.#listeners.delete(listener);
   }
 
-  /** Agenda a primeira verificacao (logo depois da abertura, para nao competir com o carregamento) e as seguintes. */
   start() {
     if (!this.#updater || this.#timers.length) return;
     const first = setTimeout(() => void this.check(), this.#startDelayMs);
@@ -83,7 +72,6 @@ export class UpdateService {
     this.#timers = [];
   }
 
-  /** Verifica agora. Nunca lanca: o resultado fica em `state` (que e devolvido). */
   check() {
     if (!this.#updater) return Promise.resolve(this.#state);
     if (this.#inflight) return this.#inflight;
@@ -101,9 +89,8 @@ export class UpdateService {
     return this.#inflight;
   }
 
-  /** Fecha o app e instala a versao ja baixada (e reabre o app). */
   install() {
-    if (this.#state.status !== UpdateStatus.READY) throw new AppError('Nenhuma atualização pronta para instalar.', 'NOT_FOUND');
+    if (this.#state.status !== UpdateStatus.READY) throw new AppError('No update is ready to install.', 'NOT_FOUND');
     this.#updater.quitAndInstall(false, true);
   }
 

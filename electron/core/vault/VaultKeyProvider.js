@@ -2,10 +2,6 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-/**
- * Guarda a chave de 32 bytes do cofre local. A chave e protegida por funcoes injetadas
- * (no app: safeStorage do Electron / chaveiro do SO). Sem protecao, fica em arquivo 0600.
- */
 export class VaultKeyProvider {
   #filePath;
   #protect;
@@ -33,7 +29,7 @@ export class VaultKeyProvider {
       fs.mkdirSync(path.dirname(this.#filePath), { recursive: true });
       fs.writeFileSync(this.#filePath, this.#protect(this.#key), { mode: 0o600 });
     }
-    if (this.#key.length !== 32) throw new Error('Chave do cofre invalida.');
+    if (this.#key.length !== 32) throw new Error('Invalid vault key.');
     return this.#key;
   }
 }

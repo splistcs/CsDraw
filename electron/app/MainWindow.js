@@ -1,15 +1,15 @@
 import { BrowserWindow, shell } from 'electron';
 
 export class MainWindow {
-  /** Cria a janela com isolamento de contexto e sandbox; links externos abrem no navegador. */
-  static create({ preloadPath, devUrl, indexPath }) {
+  static create({ preloadPath, devUrl, indexPath, iconPath }) {
     const window = new BrowserWindow({
       width: 1440,
       height: 900,
       minWidth: 980,
       minHeight: 640,
       backgroundColor: '#12171c',
-      title: 'CSDraw',
+      title: 'CsDraw',
+      icon: iconPath,
       autoHideMenuBar: true,
       webPreferences: {
         preload: preloadPath,

@@ -2,7 +2,6 @@ import fs from 'node:fs/promises';
 import { AppError } from '../errors/AppError.js';
 import { ChunkedCipher } from './ChunkedCipher.js';
 
-/** Le (e descriptografa) um arquivo em blocos, com suporte a intervalos de bytes. */
 export class ChunkedReader {
   #filePath;
   #cipher;
@@ -14,7 +13,6 @@ export class ChunkedReader {
     this.#headerSize = headerSize;
   }
 
-  /** Gera pedacos em claro do intervalo [start, endInclusive]. */
   async *read(start = 0, endInclusive = Infinity) {
     const handle = await fs.open(this.#filePath, 'r');
     try {
@@ -30,7 +28,7 @@ export class ChunkedReader {
         const plainLength = isFinal ? plainSize - index * ChunkedCipher.CHUNK_SIZE : ChunkedCipher.CHUNK_SIZE;
         const record = Buffer.alloc(plainLength + ChunkedCipher.TAG_SIZE);
         const { bytesRead } = await handle.read(record, 0, record.length, this.#headerSize + index * ChunkedCipher.RECORD_SIZE);
-        if (bytesRead !== record.length) throw new AppError('Arquivo criptografado truncado.', 'CORRUPTED');
+        if (bytesRead !== record.length) throw new AppError('Truncated encrypted file.', 'CORRUPTED');
         const plain = this.#cipher.decryptChunk(record, index, isFinal);
         const from = index === firstChunk ? start - index * ChunkedCipher.CHUNK_SIZE : 0;
         const to = index === lastChunk ? last - index * ChunkedCipher.CHUNK_SIZE + 1 : plain.length;

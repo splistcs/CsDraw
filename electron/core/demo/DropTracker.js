@@ -5,55 +5,31 @@ const round1 = (value) => Math.round(value * 10) / 10;
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const number = (value) => (value === undefined || value === null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value));
 
-// ---- tempos (segundos) ----
-const DROP_SETTLE_SECONDS = 1; // no inicio do round o jogo remonta os inventarios (troca de lados): nada vale
-const CARRIED_MAX_AGE = 3; // a ultima leitura do inventario antes da morte pode ser um pouco velha (sem as sondagens e de ate 0,25 s)
-const DEATH_BEFORE = 0.15; // item_remove tao perto da morte pertence a morte, nao e drop de proposito
+const DROP_SETTLE_SECONDS = 1;
+const CARRIED_MAX_AGE = 3;
+const DEATH_BEFORE = 0.15;
 const DEATH_AFTER = 0.5;
-const THROW_MATCH = 0.3; // item_remove <-> weapon_fire / inicio do percurso da granada: e arremesso, nao drop
-const THROW_SLACK = 0.6; // folga entre o arremesso e a queda do inventario (caminho sem eventos)
-const MAX_UNTRACKED_FLIGHT = 6.5; // sem trajetoria nem weapon_fire so se sabe quando explodiu
+const THROW_MATCH = 0.3;
+const THROW_SLACK = 0.6;
+const MAX_UNTRACKED_FLIGHT = 6.5;
 const REMOVAL_SLACK = 0.3;
-const PICKUP_EARLY_EXACT = 0.05; // drop com instante exato: so pode ser pego depois dele (alguns ticks de folga)
-const PICKUP_EARLY_COARSE = 0.5; // drop achado pelo inventario (quadros de 0,25 s): o instante real e anterior
-const SAME_DROP_SECONDS = 1.5; // dois avisos de C4 largada tao proximos sao o mesmo drop
-const MAX_LOST_PER_STEP = 2; // perder mais que isso de uma vez e remontagem do inventario, nao um drop
+const PICKUP_EARLY_EXACT = 0.05;
+const PICKUP_EARLY_COARSE = 0.5;
+const SAME_DROP_SECONDS = 1.5;
+const MAX_LOST_PER_STEP = 2;
 
-// ---- distancias (unidades do jogo) ----
-const TIGHT_RADIUS = 160; // pega a esta distancia do ponto estimado de repouso (ou da origem): casamento seguro
-const LOOSE_RADIUS = 350; // segunda chance: pega ate aqui da origem (o item voa/desliza antes de parar)
-const MAX_REST_SHIFT = 260; // item que "andou" mais que isso da origem nao e plausivel: ignora a posicao de quem pegou
+const TIGHT_RADIUS = 160;
+const LOOSE_RADIUS = 350;
+const MAX_REST_SHIFT = 260;
 const SAME_C4_RADIUS = 350;
 
-// ---- sondagens: ticks lidos so para estas decisoes (alem dos quadros de 4 Hz) ----
-// Granada que cai na morte: UMA, a mais cara do inventario (mp_death_drop_grenade 1), nao a que estava na mao. Ordem de valor
-// (incendiaria 600 / molotov 400, smoke 300, HE 300, flash 200, decoy 50). Smoke e HE custam o mesmo: o empate e decidido por
-// esta ordem (suposicao; basta trocar as duas posicoes se o jogo escolher a outra).
 const DEATH_GRENADE_PRIORITY = ['fire', 'smoke', 'he', 'flash', 'decoy'];
-const DEATH_PROBES = [1, 6]; // 1 tick antes (inventario/arma na mao exatos) e 6 (para a velocidade)
-const REMOVE_PROBES = [1, 6]; // a velocidade de quem largou sai de duas leituras do proprio jogador
+const DEATH_PROBES = [1, 6];
+const REMOVE_PROBES = [1, 6];
 const VELOCITY_MIN_TICKS = 2;
 const VELOCITY_WINDOW_SECONDS = 0.6;
 
-/**
- * Itens no chao (granadas, C4 e kit de defuse) de um round. Funcoes puras.
- *
- * O demo so diz com exatidao QUANDO e ONDE o item saiu do jogador e QUANDO alguem o pegou; onde ele para e estimado
- * (DropPhysics) e corrigido pelo lugar de quem pegou. Regras:
- *
- * - Kit de defuse: so cai na MORTE de quem o tem (o jogo nao deixa largar o kit; perder `has_defuser` de um quadro para o outro
- *   e remontagem do inventario, nao drop). Pegar o kit do chao vale normalmente.
- * - Morte: o jogador solta UMA granada, a mais cara do inventario (`DEATH_GRENADE_PRIORITY`), mais a C4 e o kit de
- *   defuse. As outras granadas somem com ele: nao existem no chao. Sem o inventario lido, nenhuma granada cai.
- * - Largar de proposito: cada `item_remove` que nao e morte, arremesso ou round novo e um drop, com o instante, o
- *   lugar e o olhar exatos. Vale para varios por segundo e para largar-e-pegar dentro do mesmo quadro. Sem o evento
- *   (parser que nao o entrega), o drop vem da queda do inventario entre dois quadros seguidos.
- * - Pegar: `item_pickup`/`bomb_pickup` fecham o drop do mesmo tipo mais plausivel (perto de onde ele deve ter parado,
- *   ja existente naquele instante). So ha pega por crescimento de inventario quando a demo nao traz `item_pickup`.
- * - So existe uma C4 por round: nunca ha duas no chao, e depois do plantio nao ha nenhuma.
- */
 export class DropTracker {
-  /** Ticks extras a ler: logo antes de cada morte e de cada item_remove (so dentro dos rounds). */
   static probeTicks(events, rounds) {
     const ticks = new Set();
     const inside = (tick) => rounds.some((round) => tick >= round.startTick && tick <= round.endTick);
@@ -69,15 +45,6 @@ export class DropTracker {
     return [...ticks].sort((a, b) => a - b);
   }
 
-  /**
-   * @param {object} c
-   *  startTick, tickRate  inicio do round e taxa de ticks
-   *  frames               quadros do round ({ t, p: [entradas] }), usados no caminho sem eventos
-   *  timeline             Map(jogador -> [{ tick, entry }]) com TODAS as leituras (quadros + sondagens), por tick
-   *  deaths [{ tick, victim, x, y, z }], removals, pickups, bombPickups, bombDrops (eventos crus do round)
-   *  fires [{ player, type, t }], throws (granadas arremessadas do round), bomb [{ t, type }]
-   *  sides, playerIndex(steamid), hasRemoveEvents, hasPickupEvents, hasFireEvents (a demo traz o evento)
-   */
   static build(c) {
     const env = { ...c, at: (tick) => Math.max(0, Math.round(((tick - c.startTick) / c.tickRate) * 100) / 100) };
     const drops = [...DropTracker.#deathDrops(env)];
@@ -94,9 +61,6 @@ export class DropTracker {
     return unique.map((drop) => DropTracker.#settled(drop, c.sides));
   }
 
-  // ---------------------------------------------------------------- leituras do jogador
-
-  /** Leitura do jogador mais proxima de `tick` (viva ou nao); null se ele nao aparece. */
   static #nearest(c, player, tick) {
     const list = c.timeline.get(player);
     if (!list?.length) return null;
@@ -109,7 +73,6 @@ export class DropTracker {
     return best?.item ?? null;
   }
 
-  /** Ultima leitura com o jogador vivo ate `tick`. */
   static #liveBefore(c, player, tick) {
     const list = c.timeline.get(player) ?? [];
     for (let index = list.length - 1; index >= 0; index -= 1) {
@@ -118,10 +81,6 @@ export class DropTracker {
     return null;
   }
 
-  /**
-   * Posicao de um evento. Sem as propriedades do jogador (o parser recusou: propriedade ausente), vem da leitura mais
-   * proxima dele; propriedade presente mas invalida descarta o evento.
-   */
   static #locate(c, player, tick, x, y, z) {
     if (x === undefined || x === null || y === undefined || y === null) {
       const near = player === null ? null : DropTracker.#nearest(c, player, tick);
@@ -130,7 +89,6 @@ export class DropTracker {
     return Number.isFinite(Number(x)) && Number.isFinite(Number(y)) ? { x: Number(x), y: Number(y), z: Number(z) || 0, exact: true } : null;
   }
 
-  /** Velocidade horizontal em `tick`: duas leituras do proprio jogador (mesma fonte), a mais nova ate `tick` e uma anterior. */
   static #velocity(c, player, tick) {
     const list = c.timeline.get(player) ?? [];
     let newest = null;
@@ -151,13 +109,6 @@ export class DropTracker {
     return { yaw: number(event.user_yaw) ?? number(near?.[3]), pitch: number(event.user_pitch) ?? number(near?.[10]) ?? 0 };
   }
 
-  // ---------------------------------------------------------------- morte
-
-  /**
-   * Quem morre solta UMA granada, a mais cara do inventario (a que estava na mao nao importa), a C4 e o kit de defuse.
-   * Quem arremessou uma granada um instante antes de morrer (weapon_fire ou percurso) ja nao a tem: ela sai da lista
-   * antes da escolha, e a mais cara das que sobraram e que cai.
-   */
   static #deathDrops(c) {
     const out = [];
     for (const death of c.deaths) {
@@ -180,7 +131,6 @@ export class DropTracker {
     return out;
   }
 
-  /** Tira da lista o que o jogador arremessou entre `from` e `to`: essas granadas nao caem no chao. */
   static #withoutThrown(list, { player, from, to, fires, throws }) {
     const remove = (type) => { const at = list.indexOf(type); if (at >= 0) list.splice(at, 1); };
     const fired = fires.filter((fire) => fire.player === player && fire.t >= from - 0.02 && fire.t <= to + 0.05);
@@ -192,9 +142,6 @@ export class DropTracker {
     return list;
   }
 
-  // ---------------------------------------------------------------- largar de proposito (eventos)
-
-  /** Cada item_remove que nao e morte, arremesso nem round novo e um drop, com o instante, o lugar e o olhar exatos. */
   static #removalDrops(c) {
     const out = [];
     const usedFires = new Set();
@@ -202,7 +149,7 @@ export class DropTracker {
     for (const event of c.removals) {
       const player = c.playerIndex(event.user_steamid);
       const type = GrenadeInventory.classify(event.item ?? event.weapon);
-      if (player === null || !type || type === 'c4' || type === 'defuser') continue; // a C4 tem eventos proprios (bomb_dropped); o kit nao pode ser largado: so cai na morte
+      if (player === null || !type || type === 'c4' || type === 'defuser') continue;
       const t = c.at(event.tick);
       if (t <= DROP_SETTLE_SECONDS) continue;
       if (c.deaths.some((death) => death.victim === player && t >= c.at(death.tick) - DEATH_BEFORE && t <= c.at(death.tick) + DEATH_AFTER)) continue;
@@ -215,7 +162,6 @@ export class DropTracker {
     return out;
   }
 
-  /** O item sumiu por arremesso? weapon_fire e o inicio do percurso provam; cada prova vale uma vez. */
   static #wasThrown(c, { player, type, t, usedFires, usedThrows }) {
     const fire = c.fires.find((f) => !usedFires.has(f) && f.player === player && f.type === type && Math.abs(f.t - t) <= THROW_MATCH);
     const grenade = c.throws.find((g) => {
@@ -228,13 +174,6 @@ export class DropTracker {
     return Boolean(fire || grenade);
   }
 
-  // ---------------------------------------------------------------- caminho sem eventos: inventario entre quadros
-
-  /**
-   * Compara os inventarios de quadros seguidos de cada jogador vivo. `lost`: o que sumiu sem explicacao (largado);
-   * `gained`: o que apareceu (pegou do chao ou comprou). Quando a demo traz item_remove, as granadas ficam por conta
-   * dos eventos (so C4 e kit usam este caminho); o que um evento ja explica nao se repete.
-   */
   static #inventoryDiff(c, evented) {
     const lost = [];
     const gained = [];
@@ -264,18 +203,18 @@ export class DropTracker {
           if (at >= 0) { now.splice(at, 1); return false; }
           return true;
         });
-        now.forEach((type) => gained.push({ player: entry[0], type, t: frame.t, x: entry[1], y: entry[2] })); // o que sobrou apareceu
+        now.forEach((type) => gained.push({ player: entry[0], type, t: frame.t, x: entry[1], y: entry[2] }));
         if (!gone.length || frame.t <= DROP_SETTLE_SECONDS || gone.length > MAX_LOST_PER_STEP) continue;
         for (const type of gone) {
-          if (type === 'defuser') continue; // o kit nao pode ser largado (so cai na morte): sumir do inventario e troca de round, compra ou leitura, nunca drop
+          if (type === 'defuser') continue;
           const special = type === 'c4';
-          if (type === 'c4' && plantedAt.some((t) => t >= before.t - 1 && t <= frame.t + 1)) continue; // plantou
-          if (!special && c.hasRemoveEvents) continue; // os item_remove mandam nas granadas
+          if (type === 'c4' && plantedAt.some((t) => t >= before.t - 1 && t <= frame.t + 1)) continue;
+          if (!special && c.hasRemoveEvents) continue;
           const known = evented.findIndex((d, index) => !claimed.has(index) && d.player === entry[0] && d.type === type && d.t >= before.t - REMOVAL_SLACK && d.t <= frame.t + REMOVAL_SLACK);
           if (known >= 0) { claimed.add(known); continue; }
           if (!special && fired(type, entry[0], before.t, frame.t)) {
             const match = explains(type, entry[0], before.t, frame.t);
-            if (match) usedThrows.add(match); // a mesma granada nao explica outra queda
+            if (match) usedThrows.add(match);
             continue;
           }
           const grenade = special ? null : explains(type, entry[0], before.t, frame.t);
@@ -294,9 +233,6 @@ export class DropTracker {
     return { lost, gained };
   }
 
-  // ---------------------------------------------------------------- C4
-
-  /** bomb_dropped cobre quem largou a C4 quando o inventario nao foi lido (ou nao trouxe a C4). */
   static #bombDrops(c, existing) {
     const out = [];
     for (const event of c.bombDrops) {
@@ -312,7 +248,6 @@ export class DropTracker {
     return out;
   }
 
-  /** Uma C4 so existe uma vez: dois avisos do mesmo drop (inventario + bomb_dropped) viram um. */
   static #withoutDuplicateC4(drops) {
     const kept = [];
     for (const drop of [...drops].sort((a, b) => a.t - b.t)) {
@@ -322,10 +257,6 @@ export class DropTracker {
     return kept;
   }
 
-  /**
-   * Nunca duas C4 no chao: quando aparece uma C4 nova, a anterior ja foi pega por quem a largou agora; e depois do
-   * plantio nao ha C4 no chao. Corrige o caso em que o aviso de "pegou" nao veio.
-   */
   static #singleC4(drops, bomb) {
     const c4 = drops.filter((drop) => drop.type === 'c4').sort((a, b) => a.t - b.t);
     const plantedAt = bomb.find((b) => b.type === 'planted')?.t;
@@ -337,9 +268,6 @@ export class DropTracker {
     });
   }
 
-  // ---------------------------------------------------------------- pegar
-
-  /** Quem pegou o que e quando: item_pickup, bomb_pickup e (so sem item_pickup na demo) o inventario que cresceu. */
   static #pickups(c, gained) {
     const list = [];
     for (const event of c.pickups) {
@@ -348,14 +276,12 @@ export class DropTracker {
       const place = DropTracker.#locate(c, player, event.tick, event.user_X, event.user_Y, event.user_Z);
       if (type && place) list.push({ player, type, t: c.at(event.tick), x: place.x, y: place.y });
     }
-    // A C4 tem evento proprio (bomb_pickup); vale o item_pickup tambem, mas um aviso so conta uma vez.
     for (const event of c.bombPickups) {
       const player = c.playerIndex(event.user_steamid);
       const place = DropTracker.#locate(c, player, event.tick, event.user_X, event.user_Y, event.user_Z);
       const t = c.at(event.tick);
       if (place && !list.some((p) => p.type === 'c4' && p.player === player && Math.abs(p.t - t) <= 1)) list.push({ player, type: 'c4', t, x: place.x, y: place.y });
     }
-    // Sem item_pickup na demo, o inventario que cresceu e a unica pista de grenada pega; C4 e kit tambem a aceitam. Aviso ja visto vale uma vez.
     for (const g of gained) {
       if (c.hasPickupEvents && g.type !== 'c4' && g.type !== 'defuser') continue;
       if (!list.some((p) => p.type === g.type && p.player === g.player && Math.abs(p.t - g.t) <= 1)) list.push(g);
@@ -363,12 +289,6 @@ export class DropTracker {
     return list.sort((a, b) => a.t - b.t);
   }
 
-  /**
-   * Cada pega fecha UM drop aberto do mesmo tipo que ja existia naquele instante. Primeiro o mais perto do ponto onde
-   * ele deve ter parado (ou da origem) dentro de um raio curto; so se nenhum serve, o mais perto de onde parou dentro
-   * de um raio largo (o item voa/desliza). Como cada pega so enxerga drops anteriores a ela e fecha o escolhido,
-   * quem larga e pega varias vezes seguidas fecha cada drop com a sua propria pega.
-   */
   static #match(drops, pickups) {
     for (const pickup of pickups) {
       const open = drops.filter((d) => d.until === null && d.type === pickup.type && d.t <= pickup.t + (d.exact ? PICKUP_EARLY_EXACT : PICKUP_EARLY_COARSE));
@@ -380,7 +300,6 @@ export class DropTracker {
     }
   }
 
-  /** Menor pontuacao (null descarta); empate fica com o mais antigo (a lista vem ordenada por tempo). */
   static #closest(list, score) {
     let best = null;
     for (const drop of list) {
@@ -390,9 +309,6 @@ export class DropTracker {
     return best?.drop ?? null;
   }
 
-  // ---------------------------------------------------------------- onde para
-
-  /** Ponto de repouso pelo modelo (sem considerar quem pegou). */
   static #rest(drop) {
     const motion = drop.motion ?? {};
     const model = drop.kind === 'death'
@@ -401,7 +317,6 @@ export class DropTracker {
     return { x: model?.x ?? drop.x, y: model?.y ?? drop.y, fall: model?.fall ?? null, moves: Boolean(model) };
   }
 
-  /** Formato final do drop: onde para (quem pegou estava encostado no item; senao o modelo) e quanto leva. */
   static #settled(drop, sides) {
     const origin = { x: drop.x, y: drop.y };
     const death = drop.kind === 'death';

@@ -7,7 +7,6 @@ import { MapImageLoader } from './MapImageLoader.js';
 import { MapLayout } from './MapLayout.js';
 import { Viewport } from './Viewport.js';
 
-/** Renderiza um desenho salvo (somente leitura, enquadrando o mapa inteiro) em um canvas. */
 export function DrawingPreview({ drawing, className = 'drawing-preview' }) {
   const { t } = useI18n();
   const canvasRef = useRef(null);

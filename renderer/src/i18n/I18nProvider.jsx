@@ -8,7 +8,7 @@ export function I18nProvider({ children }) {
 
   const setLocale = useCallback((next) => {
     setLocaleState(next);
-    try { localStorage.setItem('csdraw-locale', next); } catch { /* sem armazenamento: vale so nesta sessao */ }
+    try { localStorage.setItem('csdraw-locale', next); } catch { }
   }, []);
 
   useEffect(() => { document.documentElement.lang = locale; }, [locale]);
@@ -18,7 +18,6 @@ export function I18nProvider({ children }) {
     return params ? message.replace(/\{(\w+)\}/g, (_, name) => String(params[name] ?? `{${name}}`)) : message;
   }, [locale]);
 
-  /** Erros do processo principal chegam em portugues; nos outros idiomas usa-se a mensagem pelo codigo. */
   const errorMessage = useCallback((error) => {
     if (locale === DEFAULT_LOCALE) return error.message;
     return LOCALES[locale].messages[`error.${error.code}`] ?? error.message;

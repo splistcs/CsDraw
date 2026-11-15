@@ -1,8 +1,6 @@
 import { InlineMarkdown } from './inline.js';
 
-/** Utilidades de cursor/selecao para os blocos (contentEditable). */
 export const Caret = {
-  /** Coloca o cursor em 'start', 'end' ou depois de `pos` caracteres de texto. */
   place(el, pos = 'end') {
     const selection = window.getSelection();
     const range = document.createRange();
@@ -24,7 +22,6 @@ export const Caret = {
     selection.addRange(range);
   },
 
-  /** Selecao recolhida dentro de `el`? */
   inside(el) {
     const selection = window.getSelection();
     return Boolean(selection?.rangeCount) && el.contains(selection.anchorNode);
@@ -32,7 +29,6 @@ export const Caret = {
 
   isCollapsed: () => window.getSelection()?.isCollapsed ?? true,
 
-  /** Cursor no comeco do texto do bloco (sem selecao)? */
   atStart(el) {
     const selection = window.getSelection();
     if (!selection?.rangeCount || !selection.isCollapsed || !el.contains(selection.anchorNode)) return false;
@@ -51,7 +47,6 @@ export const Caret = {
     return range.toString().replace(/​/g, '') === '';
   },
 
-  /** O cursor esta na primeira/ultima linha visual do bloco? (para ↑ e ↓ passarem ao bloco vizinho) */
   onEdgeLine(el, edge) {
     const selection = window.getSelection();
     if (!selection?.rangeCount || !selection.isCollapsed) return false;
@@ -61,14 +56,13 @@ export const Caret = {
       if (range.startContainer.nodeType === 1 && range.startContainer.childNodes[range.startOffset]) {
         rect = range.startContainer.childNodes[range.startOffset].getBoundingClientRect?.();
       }
-      if (!rect || (!rect.height && !rect.width)) return true; // bloco vazio
+      if (!rect || (!rect.height && !rect.width)) return true;
     }
     const box = el.getBoundingClientRect();
     const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || rect.height || 20;
     return edge === 'top' ? rect.top - box.top < lineHeight * 0.9 : box.bottom - rect.bottom < lineHeight * 0.9;
   },
 
-  /** Posicao (x,y) do cursor na tela, para ancorar o menu de blocos. */
   rect(fallbackEl) {
     const selection = window.getSelection();
     if (selection?.rangeCount) {
@@ -80,7 +74,6 @@ export const Caret = {
     return fallbackEl.getBoundingClientRect();
   },
 
-  /** Markdown inline antes e depois do cursor (apaga a selecao, se houver). */
   split(el) {
     const selection = window.getSelection();
     const range = selection.getRangeAt(0);
@@ -94,14 +87,12 @@ export const Caret = {
     return { before: InlineMarkdown.fromDom(before.cloneContents()), after: InlineMarkdown.fromDom(after.cloneContents()) };
   },
 
-  /** Numero de caracteres visiveis de um texto em Markdown inline. */
   plainLength(markdown) {
     const box = document.createElement('div');
     box.innerHTML = InlineMarkdown.toHtml(markdown);
     return box.textContent.length;
   },
 
-  /** Texto puro do bloco antes do cursor. */
   textBefore(el) {
     const selection = window.getSelection();
     if (!selection?.rangeCount || !el.contains(selection.anchorNode)) return '';
@@ -111,10 +102,6 @@ export const Caret = {
     return range.toString().replace(/​/g, '');
   },
 
-  /**
-   * Converte `**x**`, `*x*`, `~~x~~` e `x` entre crases recem-digitados em formatacao.
-   * Devolve true se mexeu no DOM.
-   */
   applyInlineShortcut(el) {
     const selection = window.getSelection();
     if (!selection?.rangeCount || !selection.isCollapsed) return false;

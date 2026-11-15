@@ -16,7 +16,6 @@ import { WeaponIcons } from '../renderer/src/modules/demo-viewer/core/WeaponIcon
 import { UtilityGlyph } from '../renderer/src/modules/demo-viewer/core/UtilityGlyph.js';
 import { UtilityStyle } from '../renderer/src/modules/demo-viewer/core/UtilityStyle.js';
 
-// frame: [idx, x, y, yaw, hp, side, z, armor, money, weapon]
 const frames = [
   { t: 0, p: [[0, 0, 0, 350, 100, 3, 100, 50, 800, 0], [1, 100, 100, 0, 0, 2, 100, 0, 0, -1]] },
   { t: 1, p: [[0, 100, 200, 10, 100, 3, -900, 50, 800, 0], [1, 100, 100, 0, 0, 2, 100, 0, 0, -1]] },
@@ -36,7 +35,6 @@ test('interpolacao: posicao, angulo, andar e campos extras', () => {
   assert.equal(FrameInterpolator.sample(frames, 99).length, 1);
   assert.deepEqual(FrameInterpolator.sample([], 1), []);
   assert.equal(FrameInterpolator.sample(frames, 1.5).find((p) => p.idx === 1).x, 100, 'jogador ausente no proximo quadro fica parado');
-  // formato antigo (6 campos) continua funcionando
   assert.equal(FrameInterpolator.sample([{ t: 0, p: [[0, 1, 2, 3, 100, 3]] }], 0)[0].weapon, -1);
 });
 
@@ -131,15 +129,14 @@ test('viewport: zoom no cursor, pan, enquadramento e conversoes', () => {
   assert.equal(viewport.zoomPercent, Viewport.MIN_FACTOR * 100, 'zoom minimo limitado');
 
   viewport.fit();
-  viewport.setSize(1000, 600, 1); // continua enquadrado ao redimensionar
+  viewport.setSize(1000, 600, 1);
   assert.ok(Math.abs(viewport.scale - (600 / 1024) * 0.96) < 1e-9);
   viewport.panBy(50, 0);
-  viewport.setSize(1200, 600, 1); // depois de mover/zoom, nao reenquadra sozinho
+  viewport.setSize(1200, 600, 1);
   assert.ok(Math.abs(viewport.tx - (viewport.tx)) < 1e-9);
   const w = viewport.screenToWorld(viewport.worldToScreen(123, 456).x, viewport.worldToScreen(123, 456).y);
   assert.ok(Math.abs(w.x - 123) < 1e-9 && Math.abs(w.y - 456) < 1e-9);
 
-  // enquadrar so o andar de baixo de Nuke
   const nuke = MapLayout.forMap(MapCatalog.tryFind('nuke'));
   viewport.setWorld(nuke.width, nuke.height);
   viewport.fit(MapLayout.levelRect(nuke, 1));
@@ -190,8 +187,7 @@ test('radar: smoke desenha o anel de contagem que se esvazia e mostra os segundo
   };
   const start = -Math.PI / 2;
 
-  const sixSeconds = draw(16); // 18 s de smoke: faltam 12
-  // arc: [nome, x, y, raio, inicio, fim]
+  const sixSeconds = draw(16);
   const ring = sixSeconds.arcs.find((arc) => arc[4] === start && arc[5] < start + Math.PI * 2 - 1e-6);
   assert.ok(ring, 'anel parcial desenhado');
   assert.ok(Math.abs(ring[5] - (start + Math.PI * 2 * (12 / 18))) < 1e-9, 'anel com 12/18 restantes');
@@ -203,7 +199,6 @@ test('radar: smoke desenha o anel de contagem que se esvazia e mostra os segundo
   assert.deepEqual(draw(28.5).texts, [], 'depois de acabar nao ha contador');
 });
 
-/** Contexto 2D que so grava as chamadas (e devolve um gradiente de mentira). */
 function recordingContext() {
   const calls = [];
   const ctx = new Proxy({ canvas: { width: 100, height: 100 } }, {
@@ -262,7 +257,7 @@ test('smoke e fogo: o preenchimento parte do centro e se espalha; flash e HE usa
     return calls;
   };
   const spread = (calls) => {
-    const cells = names(calls, 'arc').filter(([, , , radius]) => radius > 1); // sem o anel do contador (raio 16, centro)
+    const cells = names(calls, 'arc').filter(([, , , radius]) => radius > 1);
     return cells.reduce((sum, [, x, y]) => sum + Math.hypot(x - 50, y - 50), 0) / Math.max(1, cells.length);
   };
   assert.ok(names(draw('smoke', 12), 'arc').length > 100, 'a nuvem e feita de muitas celulas');
@@ -272,7 +267,7 @@ test('smoke e fogo: o preenchimento parte do centro e se espalha; flash e HE usa
   assert.equal(names(draw('flash', 10.2), 'createRadialGradient').length, 1, 'clarao: halo suave');
   assert.equal(names(draw('flash', 10.2), 'arc').length, 1, 'clarao: um unico circulo, sem raios');
   assert.equal(names(draw('he', 10.2), 'createRadialGradient').length, 0, 'HE: pulso liso, sem gradiente');
-  const pulse = (time) => names(draw('he', time), 'arc').filter(([, , , radius]) => radius > 2.7); // celulas do pulso (o ponto central tem raio 2.6)
+  const pulse = (time) => names(draw('he', time), 'arc').filter(([, , , radius]) => radius > 2.7);
   assert.ok(pulse(10.2).length > 50, 'HE: o pulso e feito de celulas do chao (so a area afetada)');
   assert.ok(pulse(10.05).length < pulse(10.2).length && pulse(10.2) .length <= pulse(10.3).length, 'o pulso abre rapido');
   assert.equal(pulse(10.3).length, pulse(10.6).length, 'depois de aberto so se apaga (a area nao muda)');
@@ -283,9 +278,8 @@ test('smoke e fogo: o preenchimento parte do centro e se espalha; flash e HE usa
   assert.ok(spread(draw('fire', 16.9)) < spread(draw('fire', 12)), 'no fim o fogo se apaga das bordas para o centro');
 });
 
-// Sem PNG carregado (Node), cada item no chao vira dois icones vetoriais (contorno preto + cor): dois `translate` por item.
 globalThis.Path2D ??= class {};
-const GLYPH = 15 * 1.35 * 0.75; // tamanho do icone colorido parado no chao (DROP_SIZE * 1.35 * 0.75)
+const GLYPH = 15 * 1.35 * 0.75;
 const itemCenters = (calls) => names(calls, 'translate').filter((_, index) => index % 2 === 1).map(([, x, y]) => [null, x + GLYPH / 2, y + GLYPH / 2]);
 
 test('granadas no chao: aparecem na morte e somem quando alguem pega', () => {

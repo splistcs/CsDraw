@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 
-/** Estado do playback para componentes de React, atualizado no maximo `hz` vezes por segundo. */
 export function usePlaybackSnapshot(playback, hz = 12) {
   const [snapshot, setSnapshot] = useState(() => playback.snapshot());
   const lastRef = useRef({ stamp: 0, snapshot });

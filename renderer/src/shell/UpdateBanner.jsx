@@ -2,11 +2,6 @@ import { useState } from 'react';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 import { api } from '../shared/api/api.js';
 
-/**
- * Aviso discreto no canto: progresso do download, "pronta para instalar" e, se o app nao conseguir
- * instalar sozinho (ex.: macOS sem assinatura), um atalho para baixar a versao na pagina de releases.
- * Falhas em segundo plano sem versao nova (sem internet...) nao aparecem.
- */
 export function UpdateBanner({ updates }) {
   const { t } = useI18n();
   const [dismissed, setDismissed] = useState('');

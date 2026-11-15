@@ -1,17 +1,9 @@
-/**
- * Onde ficam os icones: armas e C4 em `public/weapons/<nome>.png` (nome de classe sem "weapon_": ak47,
- * m4a1_silencer, usp_silencer, awp, knife, c4...) e granadas em `public/grenades/<tipo>.png`
- * (he, flash, smoke, molotov, incendiary, decoy), os mesmos do quadro tatico.
- */
 export class WeaponIcons {
   static WEAPONS_DIR = './weapons';
   static GRENADES_DIR = './grenades';
-  // facas com PNG proprio (igual a WeaponNames.KNIFE_ICONS no processo principal); as demais usam knife.png
   static KNIFE_ICONS = new Set(['knife', 'knife_t', 'bayonet', 'knife_bowie', 'knife_butterfly', 'knife_canis', 'knife_cord', 'knife_css', 'knife_falchion', 'knife_flip', 'knife_gut', 'knife_gypsy_jackknife', 'knife_karambit', 'knife_kukri', 'knife_m9_bayonet', 'knife_outdoor', 'knife_push', 'knife_skeleton', 'knife_stiletto', 'knife_survival_bowie', 'knife_tactical', 'knife_twinblade', 'knife_ursus', 'knife_widowmaker']);
-  // classe da arma -> arquivo em public/grenades
   static GRENADE_FILES = { hegrenade: 'he', flashbang: 'flash', smokegrenade: 'smoke', molotov: 'molotov', incgrenade: 'incendiary', decoy: 'decoy' };
 
-  /** `type` (he, flash, smoke, fire, decoy) + lado (2 = T, 3 = CT) -> tipo do catalogo (o fogo e molotov dos T e incendiaria dos CT). */
   static grenadeFile(type, side) {
     if (type === 'fire') return side === 3 ? 'incendiary' : 'molotov';
     return type;
@@ -37,17 +29,12 @@ export class WeaponIcons {
     return `${WeaponIcons.WEAPONS_DIR}/defuser.png`;
   }
 
-  /** Icone de um item no chao: granada (por tipo e lado), C4 ou kit de defuse. */
   static dropUrl(type, side) {
     if (type === 'c4') return WeaponIcons.c4Url();
     if (type === 'defuser') return WeaponIcons.defuserUrl();
     return WeaponIcons.grenadeUrl(type, side);
   }
 
-  /**
-   * Icone de uma arma pelo nome de classe (do parser ou do killfeed). Devolve `{ key, url }`
-   * ou null sem nome. `side` desempata o fogo ("inferno" = molotov ou incendiaria).
-   */
   static resolve(name, side = null) {
     const key = String(name ?? '').toLowerCase().replace(/^weapon_/, '').replace(/[^a-z0-9_]/g, '');
     if (!key) return null;
@@ -59,7 +46,6 @@ export class WeaponIcons {
     return { key, url: `${WeaponIcons.WEAPONS_DIR}/${key}.png` };
   }
 
-  /** Texto de reserva quando nao ha PNG: "m4a1_silencer" -> "M4A1 SILENCER". */
   static label(name) {
     return String(name ?? '').replace(/^weapon_/, '').replace(/_/g, ' ').toUpperCase();
   }

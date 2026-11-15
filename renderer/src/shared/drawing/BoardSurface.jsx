@@ -3,10 +3,6 @@ import { GrenadeCatalog } from '../constants/GrenadeCatalog.js';
 import { CanvasHost } from './CanvasHost.js';
 import { DrawingBoard } from './DrawingBoard.js';
 
-/**
- * Canvas de desenho com pan/zoom: roda do mouse = zoom no cursor; ferramenta "mover" (ou botao do meio)
- * = arrastar. Usado no quadro tatico e como camada de anotacoes sobre o radar do demo viewer.
- */
 export const BoardSurface = forwardRef(function BoardSurface(
   {
     viewport, layout, images, labels, tool, pen, filters,
@@ -60,7 +56,6 @@ export const BoardSurface = forwardRef(function BoardSurface(
     const board = boardRef.current;
     if (event.button === 1 || (event.button === 0 && tool === 'pan')) {
       event.preventDefault();
-      // No modo "mover", um clique (sem arrastar) num adesivo abre o menu dele.
       const hit = event.button === 0 ? board.findStickerAt(board.toPoint(event)) : null;
       panRef.current = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, stickerId: hit?.id ?? null, moved: false };
       event.currentTarget.setPointerCapture(event.pointerId);

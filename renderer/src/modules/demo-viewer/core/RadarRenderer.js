@@ -10,18 +10,17 @@ import { UtilityStyle } from './UtilityStyle.js';
 import { WalkMask } from './WalkMask.js';
 import { WeaponIcons } from './WeaponIcons.js';
 
-const BODY_OUTLINE = '#10151a'; // contorno escuro dos bonecos
-const HP_LOST = { 2: 'rgba(38, 22, 4, 0.85)', 3: 'rgba(5, 14, 36, 0.85)' }; // parte escura do corpo = vida que falta
-const DEFUSER_BADGE = { offset: 8.6, size: 13, icon: 11, fill: 'rgba(13, 17, 20, 0.94)' }; // selo do kit de defuse no canto inferior direito
-const BLIND = { color: '#ffffff', outline: 'rgba(10, 14, 17, 0.8)', radius: 15.5, glow: 26, fade: 0.6 }; // halo branco no lugar do icone de quem esta cego
-const BOMB = { radius: 17, width: 5.5, icon: 17, base: 'rgba(22, 30, 48, 0.95)', disc: 'rgba(13, 17, 20, 0.92)', progress: '#46a758', noKit: '#f5c542', kit: '#e5484d', defused: '#46a758' }; // anel de contagem da C4
-export const DEFAULT_BRIGHTNESS = 1.25; // os radares do jogo sao escuros; um pouco de brilho melhora a leitura
+const BODY_OUTLINE = '#10151a';
+const HP_LOST = { 2: 'rgba(38, 22, 4, 0.85)', 3: 'rgba(5, 14, 36, 0.85)' };
+const DEFUSER_BADGE = { offset: 8.6, size: 13, icon: 11, fill: 'rgba(13, 17, 20, 0.94)' };
+const BLIND = { color: '#ffffff', outline: 'rgba(10, 14, 17, 0.8)', radius: 15.5, glow: 26, fade: 0.6 };
+const BOMB = { radius: 17, width: 5.5, icon: 17, base: 'rgba(22, 30, 48, 0.95)', disc: 'rgba(13, 17, 20, 0.92)', progress: '#46a758', noKit: '#f5c542', kit: '#e5484d', defused: '#46a758' };
+export const DEFAULT_BRIGHTNESS = 1.25;
 export const BRIGHTNESS_RANGE = { min: 0.8, max: 2 };
 
-/** Desenha um quadro do replay 2D (radar, granadas, bomba, jogadores) usando o viewport (pan/zoom). */
 export class RadarRenderer {
   static COLORS = UtilityStyle.SIDE_COLORS;
-  static #lit = new WeakMap(); // imagem do radar -> { fator: canvas ja clareado }
+  static #lit = new WeakMap();
 
   static draw(ctx, { viewport, layout, images, projection, round, time, players, weapons = [], showNames, labels, options = {} }) {
     const { trajectories = true, dropped = true, brightness = DEFAULT_BRIGHTNESS } = options;
@@ -30,14 +29,12 @@ export class RadarRenderer {
     viewport.apply(ctx);
     RadarRenderer.#background(ctx, layout, images, projection, labels, brightness);
 
-    // Icones e textos crescem so a raiz quadrada do zoom, para nao ficarem enormes ao aproximar.
     const k = Math.pow(Math.max(viewport.scale / viewport.fitScale, 0.2), -0.5);
     const sampled = FrameInterpolator.sample(round.frames, time);
     const positions = new Map(sampled.map((p) => [p.idx, p]));
     const dead = new Set(round.kills.filter((kill) => kill.t <= time && kill.victim !== null).map((kill) => kill.victim));
 
     const blinded = BlindState.remaining(round.blinds, time);
-    // A smoke e o fogo se espalham so pelo chao: a mascara vem do proprio radar (so vale com o radar alinhado ao mapa).
     const masks = projection.isCalibrated ? (images ?? []).map((image, index) => WalkMask.from(image, { strict: index > 0 })) : null;
 
     GrenadeEffects.draw(ctx, projection, round.grenades, time, k, { trajectories, sides: round.sides, masks });
@@ -45,7 +42,6 @@ export class RadarRenderer {
     RadarRenderer.#killLines(ctx, projection, round.kills, positions, time, k);
     const entries = sampled.map((p) => ({ p, isDead: dead.has(p.idx) || p.hp <= 0 }));
     const nameOf = (p) => players[p.idx]?.name ?? '';
-    // Ordem: X dos mortos, itens no chao (ficam por cima do X) e, por ultimo, os vivos (nunca escondidos pelos itens).
     entries.filter((e) => e.isDead).forEach(({ p }) => RadarRenderer.#player(ctx, projection, p, true, nameOf(p), showNames, k, weapons[p.weapon] ?? ''));
     if (dropped) GrenadeEffects.drawDrops(ctx, projection, round.drops, time, k, masks);
     entries.filter((e) => !e.isDead).forEach(({ p }) => {
@@ -55,7 +51,6 @@ export class RadarRenderer {
     });
   }
 
-  /** Radar clareado (cacheado por imagem e fator): o filtro roda uma vez, nao a cada quadro. */
   static #bright(image, factor) {
     if (!image || Math.abs(factor - 1) < 0.01 || typeof document === 'undefined') return image;
     const key = Math.round(factor * 100);
@@ -99,10 +94,6 @@ export class RadarRenderer {
     });
   }
 
-  /**
-   * C4 plantada: anel que se enche no sentido horario a partir do topo conforme o pavio queima, com marca amarela a 10 s
-   * (ultimo defuse sem kit) e vermelha a 5 s (ultimo defuse com kit) do fim. Depois da explosao, so a onda laranja.
-   */
   static #bomb(ctx, projection, events, time, k) {
     const bomb = BombFuse.at(events, time);
     if (!bomb) return;
@@ -160,7 +151,6 @@ export class RadarRenderer {
     }
   }
 
-  /** Selo da C4 ao lado de quem carrega a bomba. */
   static #carrier(ctx, projection, player, k) {
     const [x, y] = projection.project(player.x, player.y, player.z);
     const cx = x + 15 * k;
@@ -175,7 +165,6 @@ export class RadarRenderer {
     ctx.restore();
   }
 
-  /** Halo branco macio no lugar do icone de quem esta cego (some devagar no fim), com os segundos restantes embaixo. */
   static #blind(ctx, x, y, remaining, k) {
     const fade = Math.min(1, remaining / BLIND.fade);
     ctx.save();
@@ -186,7 +175,7 @@ export class RadarRenderer {
     glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
     ctx.fillStyle = glow;
     ctx.beginPath(); ctx.arc(x, y, BLIND.glow * k, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = BLIND.outline; // contorno escuro: o aro branco nao some em cima de areas claras do mapa
+    ctx.strokeStyle = BLIND.outline;
     ctx.lineWidth = 6.5 * k;
     ctx.beginPath(); ctx.arc(x, y, BLIND.radius * k, 0, Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = BLIND.color;
@@ -219,7 +208,6 @@ export class RadarRenderer {
       ctx.restore();
       return;
     }
-    // Cego: o halo branco ocupa o lugar do icone (corpo, vida e item na mao somem ate a visao voltar).
     if (blindLeft > 0) RadarRenderer.#blind(ctx, x, y, blindLeft, k);
     else RadarRenderer.#body(ctx, x, y, player, color, HeldItem.of(weapon), k);
     if (showNames && name) {
@@ -234,20 +222,15 @@ export class RadarRenderer {
     ctx.restore();
   }
 
-  /**
-   * Corpo do jogador pelo item na mao: arma = retangulo na direcao do olhar (comprimento pela arma), faca = ponta triangular,
-   * granada = corpo redondo com o PNG da granada ao lado. A vida aparece no proprio corpo: a parte de cima escurece
-   * conforme o jogador perde vida. Contorno escuro para destacar no radar.
-   */
   static #body(ctx, x, y, player, color, held, k) {
     const R = 11 * k;
-    const angle = (-player.yaw * Math.PI) / 180; // y do canvas e invertido
+    const angle = (-player.yaw * Math.PI) / 180;
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate(angle); // +x passa a ser a direcao do olhar
+    ctx.rotate(angle);
     ctx.fillStyle = color;
     ctx.strokeStyle = BODY_OUTLINE;
-    ctx.lineWidth = 6 * k; // o preenchimento cobre a metade de dentro: sobra um contorno de 3 * k
+    ctx.lineWidth = 6 * k;
     ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.arc(0, 0, R, 0, Math.PI * 2);
@@ -267,7 +250,6 @@ export class RadarRenderer {
     if (held.kind === 'grenade') RadarRenderer.#heldGrenade(ctx, x, y, held.grenade, player.side, color, k);
   }
 
-  /** Vida no corpo: calota escura no topo (fixa na tela, nao gira com o olhar) que cresce quando a vida cai. */
   static #health(ctx, x, y, R, hp, side) {
     const lost = 1 - Math.min(100, Math.max(0, Number(hp) || 0)) / 100;
     if (lost <= 0.005) return;
@@ -280,7 +262,6 @@ export class RadarRenderer {
     ctx.restore();
   }
 
-  /** Granada na mao: o PNG dela (com contorno no formato) ao lado do corpo, fixo na tela; sem o PNG, o icone vetorial. */
   static #heldGrenade(ctx, x, y, type, side, color, k) {
     const cx = x + 16 * k;
     const cy = y - 5 * k;
@@ -289,7 +270,6 @@ export class RadarRenderer {
     UtilityGlyph.draw(ctx, type, cx, cy, 14 * k, color);
   }
 
-  /** Selo do kit de defuse no canto inferior direito do icone do CT. */
   static #defuser(ctx, projection, player, k) {
     const [x, y] = projection.project(player.x, player.y, player.z);
     const cx = x + DEFUSER_BADGE.offset * k;

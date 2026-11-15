@@ -26,7 +26,6 @@ const PATHS = {
   bomb: 'M10 8a6 6 0 1 0 6 6M14 4l3 3M17 7l2-2'
 };
 
-/** Icones de traco simples (24x24). Rect/circle extras para formas que nao cabem em um path. */
 export function Icon({ name, size = 20 }) {
   return (
     <svg className="icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

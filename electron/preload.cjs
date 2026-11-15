@@ -1,11 +1,8 @@
-// Ponte segura entre o renderer e o processo principal (contextIsolation + sandbox).
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
-// O contextBridge descarta propriedades extras de Error (como `code`); por isso o codigo viaja
-// dentro da mensagem ("[[CODIGO]] texto") e o renderer o decodifica em shared/api/api.js.
 async function call(channel, ...args) {
   const response = await ipcRenderer.invoke(channel, ...args);
-  if (!response?.ok) throw new Error(`[[${response?.code ?? 'UNEXPECTED'}]] ${response?.message ?? 'Erro desconhecido.'}`);
+  if (!response?.ok) throw new Error(`[[${response?.code ?? 'UNEXPECTED'}]] ${response?.message ?? 'Unknown error.'}`);
   return response.data;
 }
 

@@ -9,7 +9,6 @@ import { ChunkedEncryptor } from '../crypto/ChunkedEncryptor.js';
 import { ChunkedReader } from '../crypto/ChunkedReader.js';
 import { AppError } from '../errors/AppError.js';
 
-/** Armazena blobs (midias, biblioteca) criptografados em disco, com leitura por intervalo. */
 export class BlobStore {
   static MAGIC = Buffer.from('CSBL');
   static VERSION = 1;
@@ -30,7 +29,7 @@ export class BlobStore {
   }
 
   #pathFor(id) {
-    if (!BlobStore.ID_PATTERN.test(id)) throw new AppError('Identificador inválido.', 'INVALID_ID');
+    if (!BlobStore.ID_PATTERN.test(id)) throw new AppError('Invalid identifier.', 'INVALID_ID');
     return path.join(this.#directory, `${id}${BlobStore.EXTENSION}`);
   }
 
@@ -76,7 +75,6 @@ export class BlobStore {
     return Buffer.concat(parts);
   }
 
-  /** Stream em claro dos bytes [start, endInclusive]. */
   rangeStream(id, start = 0, endInclusive = Infinity) {
     const self = this;
     return Readable.from(
@@ -101,7 +99,7 @@ export class BlobStore {
     try {
       return await fs.stat(this.#pathFor(id));
     } catch (error) {
-      if (error.code === 'ENOENT') throw new AppError('Arquivo não encontrado no cofre.', 'NOT_FOUND');
+      if (error.code === 'ENOENT') throw new AppError('File not found in the vault.', 'NOT_FOUND');
       throw error;
     }
   }
@@ -112,7 +110,7 @@ export class BlobStore {
     try {
       const header = Buffer.alloc(BlobStore.HEADER_SIZE);
       await handle.read(header, 0, header.length, 0);
-      if (!header.subarray(0, 4).equals(BlobStore.MAGIC)) throw new AppError('Arquivo do cofre inválido.', 'CORRUPTED');
+      if (!header.subarray(0, 4).equals(BlobStore.MAGIC)) throw new AppError('Invalid vault file.', 'CORRUPTED');
       return new ChunkedCipher(this.#key, header.subarray(5));
     } finally {
       await handle.close();

@@ -1,7 +1,6 @@
 import { api } from '../api/api.js';
 import { LibraryEvents } from '../events/LibraryEvents.js';
 
-/** Cache do indice de midias da biblioteca (invalidado quando a biblioteca muda). */
 export class MediaIndex {
   static #promise = null;
   static #subscribed = false;

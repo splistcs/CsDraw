@@ -1,10 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../../i18n/I18nProvider.jsx';
 
-/**
- * Lista de blocos flutuante (como a do Notion). Filtra por `query`, navega com ↑/↓, Enter escolhe e Esc fecha.
- * As teclas sao lidas no documento (fase de captura) para o foco poder ficar no bloco, onde se digita o filtro.
- */
 export function BlockMenu({ anchor, sections, query = '', onPick, onClose, onEmpty, footer = true }) {
   const { t } = useI18n();
   const ref = useRef(null);
@@ -45,7 +41,6 @@ export function BlockMenu({ anchor, sections, query = '', onPick, onClose, onEmp
     return () => { document.removeEventListener('keydown', onKey, true); document.removeEventListener('pointerdown', onPointer, true); };
   }, []);
 
-  // Cabe na tela: abre abaixo da ancora e, se faltar espaco, acima dela.
   useLayoutEffect(() => {
     const box = ref.current?.getBoundingClientRect();
     if (!box) return;

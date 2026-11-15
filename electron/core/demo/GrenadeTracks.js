@@ -1,17 +1,12 @@
 import { GrenadeInventory } from './GrenadeInventory.js';
 
-const MAX_TICK_GAP = 2; // acima disso a mesma entidade foi reaproveitada por outra granada
+const MAX_TICK_GAP = 2;
 const MAX_FLIGHT_SECONDS = 12;
 const MAX_MATCH_DISTANCE = 320;
-const BOUNCE_IMPULSE = 90; // variacao de velocidade (unidades/s) entre dois ticks que so um quique explica; a gravidade da ~7
+const BOUNCE_IMPULSE = 90;
 const PATH_STEP_TICKS = 4;
 
-/**
- * Trajetorias dos projeteis de granada (saida de parseGrenades): quando saiu da mao, por onde voou,
- * onde quicou e onde parou. Funcoes puras; o parser so entrega linhas `{ grenade_entity_id, grenade_type, steamid, tick, x, y, z }`.
- */
 export class GrenadeTracks {
-  /** Agrupa as linhas em um percurso por granada arremessada. Ignora armas seguradas (nao tem posicao no mundo). */
   static fromRows(rows) {
     const byEntity = new Map();
     for (const row of Array.isArray(rows) ? rows : []) {
@@ -43,10 +38,6 @@ export class GrenadeTracks {
     return tracks.sort((a, b) => a.startTick - b.startTick);
   }
 
-  /**
-   * Acha o percurso da granada que gerou uma explosao: mesmo tipo, mesmo jogador (quando se sabe), saiu da mao
-   * pouco antes e passou perto do ponto da explosao no instante dela. Cada percurso vale uma vez.
-   */
   static match(tracks, { tick, type, x, y, thrower = null, entityId = null }, tickRate) {
     const maxFlight = MAX_FLIGHT_SECONDS * tickRate;
     let best = null;
@@ -63,7 +54,6 @@ export class GrenadeTracks {
     return best?.track ?? null;
   }
 
-  /** Percurso ate o instante da explosao: pontos amostrados e quiques `{ tick, x, y, z }`. */
   static path(track, endTick, tickRate) {
     const points = track.points.filter((point) => point.tick <= endTick);
     const bounces = GrenadeTracks.bounces(points, tickRate);
@@ -72,7 +62,6 @@ export class GrenadeTracks {
     return { points: sampled, bounces };
   }
 
-  /** Quique = mudanca brusca de velocidade entre ticks seguidos (a gravidade sozinha muda muito pouco). */
   static bounces(points, tickRate) {
     const found = [];
     let previous = null;

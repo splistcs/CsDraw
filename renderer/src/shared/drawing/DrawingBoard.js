@@ -14,10 +14,6 @@ function distanceToSegment(p, a, b) {
   return Math.hypot(p.x - (a[0] + t * dx), p.y - (a[1] + t * dy));
 }
 
-/**
- * Motor do quadro: tracos (caneta, marca-texto, formas, texto), adesivos de granada, historico,
- * filtros e renderizacao com viewport (pan/zoom). Independente de React.
- */
 export class DrawingBoard {
   static STICKER_RADIUS = 28;
   static HIGHLIGHTER_FACTOR = 3;
@@ -57,7 +53,6 @@ export class DrawingBoard {
     GrenadeSprites.preload().then(() => this.render());
   }
 
-  // ---------- estado ----------
   get isEmpty() { return this.#strokes.length === 0 && this.#stickers.length === 0; }
 
   serialize() {
@@ -86,7 +81,6 @@ export class DrawingBoard {
     this.render();
   }
 
-  /** Limpa tudo; a limpeza entra no historico (Ctrl+Z restaura). Retorna false se ja estava vazio. */
   clear() {
     if (this.isEmpty) return false;
     this.#history = [{ kind: 'clear', snapshot: { strokes: this.#strokes, stickers: this.#stickers, history: this.#history } }];
@@ -132,7 +126,6 @@ export class DrawingBoard {
     return had;
   }
 
-  // ---------- fundo e filtros ----------
   setBackdrop(layout, images, labels) {
     this.#layout = layout;
     this.#images = images;
@@ -152,8 +145,6 @@ export class DrawingBoard {
     return this.#viewport.screenToWorld(event.clientX - rect.left, event.clientY - rect.top);
   }
 
-  // ---------- interacao (coordenadas do mundo) ----------
-  /** Inicia a acao da ferramenta atual. Retorna 'stroke' | 'erase' | 'sticker' | 'text' | null. */
   beginAt(point) {
     if (this.tool === 'text') return 'text';
     if (this.tool === 'eraser') {
@@ -203,7 +194,6 @@ export class DrawingBoard {
     }
   }
 
-  /** Finaliza traco, apagamento ou arraste. Clique sem arrastar num adesivo dispara onStickerClick. */
   end() {
     const stroke = this.#activeStroke;
     const erasing = this.#erasing;
@@ -285,7 +275,6 @@ export class DrawingBoard {
     return { x: stroke.points[0][0], y: stroke.points[0][1] - size / 2, w: width, h: size };
   }
 
-  // ---------- adesivos ----------
   addSticker(type, point) {
     if (!this.#allowStickers || !GrenadeCatalog.findByType(type)) return null;
     const sticker = { id: crypto.randomUUID(), type, x: point.x, y: point.y, images: [] };
@@ -299,7 +288,6 @@ export class DrawingBoard {
 
   getSticker(id) { return this.#stickers.find((s) => s.id === id) ?? null; }
 
-  /** Adesivo visivel sob o ponto (ou null). */
   findStickerAt(point) { return this.#allowStickers ? this.#hitSticker(point) : null; }
 
   setStickerImages(id, images) {
@@ -327,7 +315,6 @@ export class DrawingBoard {
     return null;
   }
 
-  // ---------- efeitos ----------
   #spawnEffect(type, point) {
     if (typeof requestAnimationFrame === 'undefined') return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
@@ -341,7 +328,6 @@ export class DrawingBoard {
     this.#animationFrame = requestAnimationFrame(tick);
   }
 
-  // ---------- renderizacao ----------
   render() {
     const ctx = this.#ctx;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -350,7 +336,6 @@ export class DrawingBoard {
     this.#drawWorld(ctx, { withEffects: true, ignoreFilters: false });
   }
 
-  /** Imagem do mundo inteiro (independente do pan/zoom), sem efeitos e sem filtros. */
   createThumbnail(width = 320) {
     const height = Math.round((width * this.#layout.height) / this.#layout.width);
     const canvas = document.createElement('canvas');

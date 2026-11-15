@@ -1,13 +1,8 @@
-/**
- * Catalogo de mapas do Counter-Strike 2. Para adicionar um mapa, inclua uma linha e o radar em public/maps/<slug>.png
- * (mapas de dois andares: marque `lowerLevel: true` e adicione public/maps/<slug>-lower.png).
- * O icone do menu de mapas vem de public/mapicons/<slug>.png (a lista de demos usa o radar).
- */
 export class MapCatalog {
   static GROUPS = {
     ACTIVE_DUTY: 'Active Duty (Premier)',
-    COMPETITIVE: 'Competitivo / Casual',
-    WINGMAN: 'Wingman e outros modos'
+    COMPETITIVE: 'Competitive / Casual',
+    WINGMAN: 'Wingman and other modes'
   };
 
   static MAPS = [
@@ -62,7 +57,6 @@ export class MapCatalog {
     { slug: 'canals', name: 'Canals', group: 'WINGMAN' }
   ];
 
-  /** Miniatura do mapa (public/mapicons) e, se ela nao existir, o radar. */
   static iconUrl(slug) {
     return `./mapicons/${slug}.png`;
   }
