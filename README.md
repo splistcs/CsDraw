@@ -271,28 +271,6 @@ npm run dist       # build an installer for the current OS into release/
 
 ---
 
-## Releasing a new version
-
-1. Bump `version` in `package.json` and commit.
-2. Tag it and push: `git tag v1.0.1 && git push origin v1.0.1` (the tag must be `v` + the `package.json` version).
-3. The workflow `.github/workflows/release.yml` runs the tests, builds the installers for Windows, macOS and Linux and attaches them to a **draft** release.
-4. Review the draft and click **Publish release**. Only then do installed apps see the new version.
-
-To enable macOS signing (needed for auto-update on Mac), add the repository secrets `CSC_LINK` and `CSC_KEY_PASSWORD` and pass them to the *Build and publish installers* step as environment variables.
-
-The update source is set in `package.json` → `build.publish` (`splistcs/CsDraw`).
-
----
-
-## Images and assets
-
-- **Map radars:** `renderer/public/maps/<slug>.png` (1024×1024; slugs in `shared/constants/MapCatalog.js`). Already installed, including `nuke-lower`, `vertigo-lower` and `baggage-lower` for the two-level maps. Map icons (board map picker) live in `renderer/public/mapicons/<slug>.png` (without one, the radar is used), and the demo list uses the radar as a thumbnail. Maps without a radar (Agency, Basalt, Alpine, Stronghold, Warden, Sanctum, Brewery, Safehouse, Pool Day, Canals) use a generic board; just add the PNG.
-- **Grenade icons:** `renderer/public/grenades/{he,flash,smoke,molotov,incendiary,decoy}.png` (transparent background) for the demo viewer, and `renderer/public/grenades-board/` for the tactical board. Without a file, an emoji (board) or a vector icon (demo viewer) is used.
-- **Weapon and C4 icons:** `renderer/public/weapons/<weapon>.png` (`ak47`, `m4a1_silencer`, `awp`, `usp_silencer`, `knife`, `c4`…; the full list is in that folder's `README.txt`). Without a file, the weapon name is shown.
-- **App icon:** `build/icon.png` (1024×1024) and `build/icon.ico`, used by electron-builder and the window. The in-app favicon and header icon are `renderer/public/app-icon.png` and `renderer/public/brand-grenade.png`.
-
----
-
 ## Project structure
 
 ```
